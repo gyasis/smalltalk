@@ -1,17 +1,27 @@
-#!/usr/bin/env node
-
 import {
   SmallTalk,
   CLIInterface,
   Agent,
-  PromptTemplate
+  PromptTemplate,
+  PlaygroundConfig
 } from '../src/index.js';
+
+// Playground configuration for web mode
+export const playgroundConfig: PlaygroundConfig = {
+  port: 4004,
+  host: 'localhost',
+  title: '🏥 Medical Education Tutor',
+  description: 'Comprehensive medical education environment with specialized medical experts',
+  orchestrationMode: true,
+  enableChatUI: true
+};
 
 async function createMedicalTutorApp() {
   const app = new SmallTalk({
     llmProvider: 'openai',
     model: 'gpt-4o',
-    debugMode: true
+    debugMode: true,
+    orchestration: true
   });
 
   // Create specialized medical education agents
@@ -266,53 +276,73 @@ Learning style: ${study_style}
   diagnosticsExpert.addTool(labInterpretation);
   examPrep.addTool(studyPlanGenerator);
 
-  // Add agents to framework
-  app.addAgent(clinicalInstructor);
-  app.addAgent(anatomyExpert);
-  app.addAgent(pharmacologyGuide);
-  app.addAgent(diagnosticsExpert);
-  app.addAgent(examPrep);
-
-  // Create medical education CLI interface
-  const cli = new CLIInterface({
-    type: 'cli',
-    prompt: '🏥 ',
-    colors: {
-      user: '#3498db',
-      assistant: '#27ae60',
-      system: '#e67e22',
-      error: '#e74c3c'
-    },
-    showTimestamps: true,
-    showAgentNames: true
+  // Add agents to framework with capabilities for intelligent orchestration
+  app.addAgent(clinicalInstructor, {
+    expertise: ['clinical medicine', 'case studies', 'patient safety', 'clinical reasoning', 'evidence-based medicine'],
+    complexity: 'expert',
+    taskTypes: ['clinical', 'educational', 'case-based'],
+    contextAwareness: 0.95,
+    collaborationStyle: 'instructional'
   });
 
-  app.addInterface(cli);
+  app.addAgent(anatomyExpert, {
+    expertise: ['anatomy', 'physiology', 'structures', 'functions', 'mnemonics'],
+    complexity: 'advanced',
+    taskTypes: ['educational', 'anatomical', 'structural'],
+    contextAwareness: 0.85,
+    collaborationStyle: 'detailed'
+  });
+
+  app.addAgent(pharmacologyGuide, {
+    expertise: ['pharmacology', 'drug mechanisms', 'drug interactions', 'drug safety', 'therapeutics'],
+    complexity: 'expert',
+    taskTypes: ['pharmacological', 'safety', 'therapeutic'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'precise'
+  });
+
+  app.addAgent(diagnosticsExpert, {
+    expertise: ['diagnosis', 'differential diagnosis', 'clinical decision making', 'diagnostic reasoning'],
+    complexity: 'expert',
+    taskTypes: ['diagnostic', 'analytical', 'clinical'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'systematic'
+  });
+
+  app.addAgent(examPrep, {
+    expertise: ['exam preparation', 'practice questions', 'study strategies', 'USMLE', 'medical exams'],
+    complexity: 'advanced',
+    taskTypes: ['educational', 'assessment', 'preparation'],
+    contextAwareness: 0.8,
+    collaborationStyle: 'supportive'
+  });
 
   return app;
 }
 
-async function main() {
+// Create the app instance
+const app = await createMedicalTutorApp();
+
+// Add CLI interface for direct execution
+const cli = new CLIInterface();
+app.addInterface(cli);
+
+// Export for CLI usage
+export default app;
+
+// Backward compatibility - run if executed directly
+if (require.main === module) {
   console.log('🏥 Medical Tutor - SmallTalk Framework');
   console.log('=====================================');
+  console.log('✅ Medical Education Environment Ready!');
+  console.log('🎯 Intelligent orchestration enabled - the right expert will be selected for your questions');
   
-  const app = await createMedicalTutorApp();
-  await app.start();
-
-  console.log('\n✅ Medical Education Environment Ready!');
   console.log('\n👨‍⚕️ Available Medical Experts:');
   console.log('• DrMedTeach - Clinical instructor for case-based learning');
   console.log('• AnatomyPro - Anatomy expert with detailed explanations');
   console.log('• PharmGuide - Pharmacology specialist for drug information');
   console.log('• DiagnosticDoc - Diagnostic reasoning and clinical thinking');
   console.log('• ExamMentor - Exam preparation and practice questions');
-  
-  console.log('\n🩺 Commands:');
-  console.log('• /agent DrMedTeach - Clinical cases and medical reasoning');
-  console.log('• /agent AnatomyPro - Anatomy lessons and structures');
-  console.log('• /agent PharmGuide - Drug information and pharmacology');
-  console.log('• /agent DiagnosticDoc - Diagnostic approaches');
-  console.log('• /agent ExamMentor - Exam prep and practice questions');
   
   console.log('\n💡 Try asking:');
   console.log('• "Create a cardiology case study for a 3rd year student"');
@@ -321,23 +351,17 @@ async function main() {
   console.log('• "How do I approach a patient with chest pain?"');
   console.log('• "Give me a USMLE-style question about diabetes"');
   
+  console.log('\n🎯 Features:');
+  console.log('• Intelligent expert selection based on your medical questions');
+  console.log('• Use /agent <name> to speak with specific medical experts');
+  console.log('• Specialized medical tools for drug lookup and diagnosis');
+  console.log('• Evidence-based medical education content');
+  
   console.log('\n⚠️  DISCLAIMER: All content is for educational purposes only.');
   console.log('This is not medical advice. Always verify information with current clinical resources.\n');
+  
+  app.start().catch((error) => {
+    console.error('❌ Failed to start medical tutor:', error);
+    process.exit(1);
+  });
 }
-
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n👋 Keep learning and stay curious! Good luck with your medical studies!');
-  process.exit(0);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('❌ Medical tutor error:', error);
-  process.exit(1);
-});
-
-// Run the medical tutor
-main().catch((error) => {
-  console.error('❌ Failed to start medical tutor:', error);
-  process.exit(1);
-});

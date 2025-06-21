@@ -1,18 +1,27 @@
-#!/usr/bin/env node
-
 import {
   SmallTalk,
   CLIInterface,
   Agent,
   PromptTemplate,
-  MCPClient
+  PlaygroundConfig
 } from '../src/index.js';
+
+// Playground configuration for web mode
+export const playgroundConfig: PlaygroundConfig = {
+  port: 4003,
+  host: 'localhost',
+  title: '💼 Business Meeting Simulator',
+  description: 'Executive team simulation with specialized business agents',
+  orchestrationMode: true,
+  enableChatUI: true
+};
 
 async function createBusinessMeetingApp() {
   const app = new SmallTalk({
     llmProvider: 'openai',
     model: 'gpt-4o',
-    debugMode: true
+    debugMode: true,
+    orchestration: true
   });
 
   // Create specialized business agents for different roles
@@ -313,42 +322,83 @@ Position: ${market_position}
   ceo.addTool(swotAnalysis);
   marketingDirector.addTool(competitorAnalysis);
 
-  // Add agents to framework
-  app.addAgent(ceo);
-  app.addAgent(marketingDirector);
-  app.addAgent(techLead);
-  app.addAgent(salesDirector);
-  app.addAgent(researchAnalyst);
-  app.addAgent(projectManager);
-  app.addAgent(financialAdvisor);
-
-  // Create business meeting CLI interface
-  const cli = new CLIInterface({
-    type: 'cli',
-    prompt: '💼 ',
-    colors: {
-      user: '#2980b9',
-      assistant: '#27ae60',
-      system: '#f39c12',
-      error: '#e74c3c'
-    },
-    showTimestamps: true,
-    showAgentNames: true
+  // Add agents to framework with capabilities for intelligent orchestration
+  app.addAgent(ceo, {
+    expertise: ['strategy', 'vision', 'leadership', 'decision making', 'business development'],
+    complexity: 'expert',
+    taskTypes: ['strategy', 'leadership', 'vision'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'executive'
   });
 
-  app.addInterface(cli);
+  app.addAgent(marketingDirector, {
+    expertise: ['marketing', 'branding', 'digital marketing', 'customer behavior', 'campaigns'],
+    complexity: 'advanced',
+    taskTypes: ['marketing', 'creative', 'strategy'],
+    contextAwareness: 0.8,
+    collaborationStyle: 'creative'
+  });
+
+  app.addAgent(techLead, {
+    expertise: ['architecture', 'feasibility', 'scalability', 'security', 'development'],
+    complexity: 'expert',
+    taskTypes: ['technical', 'architecture', 'analysis'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'analytical'
+  });
+
+  app.addAgent(salesDirector, {
+    expertise: ['sales', 'customer needs', 'revenue', 'market demands', 'negotiation'],
+    complexity: 'advanced',
+    taskTypes: ['sales', 'customer', 'revenue'],
+    contextAwareness: 0.8,
+    collaborationStyle: 'results-oriented'
+  });
+
+  app.addAgent(researchAnalyst, {
+    expertise: ['research', 'analysis', 'data', 'market trends', 'competitive intelligence'],
+    complexity: 'expert',
+    taskTypes: ['research', 'analysis', 'data'],
+    contextAwareness: 0.95,
+    collaborationStyle: 'analytical'
+  });
+
+  app.addAgent(projectManager, {
+    expertise: ['project management', 'planning', 'coordination', 'timelines', 'risk management'],
+    complexity: 'advanced',
+    taskTypes: ['planning', 'coordination', 'management'],
+    contextAwareness: 0.85,
+    collaborationStyle: 'organized'
+  });
+
+  app.addAgent(financialAdvisor, {
+    expertise: ['finance', 'budgeting', 'ROI', 'financial analysis', 'cost management'],
+    complexity: 'expert',
+    taskTypes: ['financial', 'analysis', 'budgeting'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'analytical'
+  });
 
   return app;
 }
 
-async function main() {
+// Create the app instance
+const app = await createBusinessMeetingApp();
+
+// Add CLI interface for direct execution
+const cli = new CLIInterface();
+app.addInterface(cli);
+
+// Export for CLI usage
+export default app;
+
+// Backward compatibility - run if executed directly
+if (require.main === module) {
   console.log('💼 Business Meeting - SmallTalk Framework');
   console.log('=========================================');
+  console.log('✅ Business Meeting Environment Ready!');
+  console.log('🎯 Intelligent orchestration enabled - agents will be selected based on your needs');
   
-  const app = await createBusinessMeetingApp();
-  await app.start();
-
-  console.log('\n✅ Business Meeting Environment Ready!');
   console.log('\n👥 Executive Team Available:');
   console.log('• CEO - Strategic leadership and high-level decisions');
   console.log('• MarketingLead - Marketing strategy and brand positioning');
@@ -357,15 +407,6 @@ async function main() {
   console.log('• ResearchPro - Market research and competitive analysis');
   console.log('• ProjectManager - Project planning and coordination');
   console.log('• FinanceAdvisor - Financial analysis and budgeting');
-  
-  console.log('\n🗣️ Commands:');
-  console.log('• /agent CEO - Strategic decisions and vision');
-  console.log('• /agent MarketingLead - Marketing and branding');
-  console.log('• /agent TechLead - Technical architecture and feasibility');
-  console.log('• /agent SalesChief - Sales strategy and customer focus');
-  console.log('• /agent ResearchPro - Market research and analysis');
-  console.log('• /agent ProjectManager - Project planning and execution');
-  console.log('• /agent FinanceAdvisor - Financial planning and ROI');
   
   console.log('\n💡 Business Scenarios to Try:');
   console.log('• "We want to launch a new mobile app for food delivery"');
@@ -376,27 +417,15 @@ async function main() {
   console.log('• "Research competitors in the fintech space"');
   console.log('• "Plan a website redesign project with $50k budget"');
   
-  console.log('\n🎯 Meeting Formats:');
-  console.log('• Switch between agents to get different perspectives');
-  console.log('• Present a business challenge and gather expert opinions');
-  console.log('• Use agents\' specialized tools for analysis and planning');
+  console.log('\n🎯 Meeting Features:');
+  console.log('• Intelligent agent selection based on your question');
+  console.log('• Use /agent <name> to speak with specific experts');
+  console.log('• Agents have specialized tools for analysis and planning');
   console.log('• Build comprehensive business strategies collaboratively');
   console.log('\n');
+  
+  app.start().catch((error) => {
+    console.error('❌ Failed to start business meeting:', error);
+    process.exit(1);
+  });
 }
-
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n👋 Meeting adjourned! Great collaboration, team!');
-  process.exit(0);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('❌ Business meeting error:', error);
-  process.exit(1);
-});
-
-// Run the business meeting
-main().catch((error) => {
-  console.error('❌ Failed to start business meeting:', error);
-  process.exit(1);
-});

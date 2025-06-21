@@ -1,22 +1,31 @@
-#!/usr/bin/env node
-
 import { 
   SmallTalk, 
   CLIInterface, 
   AgentFactory,
   createAgent,
-  createCLI 
+  PlaygroundConfig
 } from '../src/index.js';
 
-async function main() {
-  // Create the SmallTalk framework instance
+// Playground configuration for web mode
+export const playgroundConfig: PlaygroundConfig = {
+  port: 4000,
+  host: 'localhost',
+  title: '💬 Basic Chat Demo',
+  description: 'Multi-agent chat with Helper, CodeBot, and Writer',
+  orchestrationMode: true,
+  enableChatUI: true
+};
+
+async function createBasicChatApp() {
+  // Create the SmallTalk framework instance with orchestration
   const app = new SmallTalk({
     llmProvider: 'openai',
     model: 'gpt-4o',
-    debugMode: true
+    debugMode: true,
+    orchestration: true
   });
 
-  // Create some agents with different personalities
+  // Create agents with capabilities for better orchestration
   const helpfulAgent = createAgent(
     'Helper',
     'A friendly and helpful assistant who loves to help solve problems and answer questions clearly.',
@@ -33,47 +42,55 @@ async function main() {
     'creative'
   );
 
-  // Add agents to the framework
-  app.addAgent(helpfulAgent);
-  app.addAgent(codingAgent);
-  app.addAgent(creativeAgent);
-
-  // Create and add CLI interface
-  const cli = createCLI({
-    prompt: '💬 ',
-    showTimestamps: false,
-    colors: {
-      user: '#00FFFF',
-      assistant: '#00FF00',
-      system: '#FFFF00'
-    }
+  // Add agents with capabilities for intelligent orchestration
+  app.addAgent(helpfulAgent, {
+    expertise: ['general conversation', 'problem solving', 'questions'],
+    complexity: 'basic',
+    taskTypes: ['assistance', 'conversation'],
+    contextAwareness: 0.8,
+    collaborationStyle: 'supportive'
   });
 
-  app.addInterface(cli);
+  app.addAgent(codingAgent, {
+    expertise: ['javascript', 'typescript', 'python', 'programming', 'debugging'],
+    complexity: 'advanced',
+    taskTypes: ['coding', 'debugging', 'code review'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'technical'
+  });
 
-  // Start the framework
-  console.log('🚀 Starting SmallTalk framework...');
-  await app.start();
+  app.addAgent(creativeAgent, {
+    expertise: ['writing', 'content creation', 'storytelling', 'editing'],
+    complexity: 'intermediate',
+    taskTypes: ['creative', 'writing', 'content'],
+    contextAwareness: 0.8,
+    collaborationStyle: 'creative'
+  });
 
-  console.log('\n✅ SmallTalk is ready!');
-  console.log('Available agents:', app.listAgents().join(', '));
-  console.log('Type "/agent <name>" to switch agents');
-  console.log('Type "/help" for more commands\n');
+  return app;
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\n👋 Shutting down SmallTalk...');
-  process.exit(0);
-});
+// Create the app instance
+const app = await createBasicChatApp();
 
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught exception:', error);
-  process.exit(1);
-});
+// Add CLI interface for direct execution
+const cli = new CLIInterface();
+app.addInterface(cli);
 
-// Run the example
-main().catch((error) => {
-  console.error('❌ Failed to start SmallTalk:', error);
-  process.exit(1);
-});
+// Export for CLI usage
+export default app;
+
+// Backward compatibility - run if executed directly
+if (require.main === module) {
+  console.log('🚀 Starting Basic Chat Demo...');
+  console.log('✅ SmallTalk is ready!');
+  console.log('Available agents:', app.listAgents().join(', '));
+  console.log('🎯 Orchestration enabled - agents will be selected intelligently');
+  console.log('Type "/agent <name>" to switch agents manually');
+  console.log('Type "/help" for more commands\n');
+  
+  app.start().catch((error) => {
+    console.error('❌ Failed to start SmallTalk:', error);
+    process.exit(1);
+  });
+}

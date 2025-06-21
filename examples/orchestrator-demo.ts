@@ -1,5 +1,3 @@
-#!/usr/bin/env tsx
-
 /**
  * 🎯 SmallTalk Orchestrator Demo
  * 
@@ -18,6 +16,17 @@ import { SmallTalk } from '../src/core/SmallTalk.js';
 import { Agent } from '../src/agents/Agent.js';
 import { CLIInterface } from '../src/interfaces/CLIInterface.js';
 import { AgentCapabilities } from '../src/agents/OrchestratorAgent.js';
+import { PlaygroundConfig } from '../src/types/index.js';
+
+// Playground configuration for web mode
+export const playgroundConfig: PlaygroundConfig = {
+  port: 4002,
+  host: 'localhost',
+  title: '🎯 SmallTalk Orchestrator Demo',
+  description: 'Advanced multi-agent orchestration with intelligent routing and plan execution',
+  orchestrationMode: true,
+  enableChatUI: true
+};
 
 // 🎓 Create specialized agents with distinct capabilities
 const professor = new Agent({
@@ -213,7 +222,7 @@ const agentCapabilities: Record<string, AgentCapabilities> = {
   }
 };
 
-async function demonstrateOrchestration() {
+async function createOrchestratorDemo() {
   console.log('🎯 SmallTalk Orchestrator Demo');
   console.log('=====================================');
   console.log('');
@@ -299,39 +308,6 @@ async function demonstrateOrchestration() {
     console.log(`\n⚠️  Auto-response limit reached. Please provide input to continue.`);
   });
 
-  // Start the application
-  await app.start();
-
-  console.log('🤖 Available Agents:');
-  app.listAgents().forEach(agentName => {
-    const agent = app.getAgent(agentName);
-    console.log(`   • ${agentName}: ${agent?.config.expertise?.join(', ')}`);
-  });
-
-  console.log('\n🎯 Orchestration Features:');
-  console.log('   • Automatic agent selection based on user intent');
-  console.log('   • Smart handoffs when expertise changes');
-  console.log('   • Custom handoff rules for specific patterns');
-  console.log('   • Context-aware routing decisions');
-
-  console.log('\n📝 Try these example messages to see orchestration:');
-  console.log('   • "I\'m a beginner, how do I start programming?"');
-  console.log('   • "Explain the theory behind quick sort algorithm"');
-  console.log('   • "I have a bug in my JavaScript code"');
-  console.log('   • "What architecture should I use for a large-scale system?"');
-  console.log('   • "Please introduce yourselves" (creates multi-step plan)');
-  console.log('   • During plan execution, type to interrupt and redirect');
-
-  console.log('\n🎛️ Commands:');
-  console.log('   • /orchestration on|off - Enable/disable orchestration');
-  console.log('   • /agent <name> - Manually switch to specific agent');
-  console.log('   • /stats - Show orchestration statistics');
-  console.log('   • /plans - List active execution plans');
-  console.log('   • /pause <plan_id> - Pause plan execution');
-  console.log('   • /resume <plan_id> - Resume paused plan');
-  console.log('   • /status - Show system status');
-  console.log('   • /quit - Exit the demo');
-
   // Add enhanced CLI command handlers
   cli.registerCommand('stats', () => {
     const stats = app.getOrchestrationStats();
@@ -388,13 +364,50 @@ async function demonstrateOrchestration() {
     console.log('');
   });
 
-  console.log('\n🚀 Orchestrator is ready! Start chatting to see intelligent agent routing in action.');
+  return app;
+}
+
+// Create the app instance
+const app = await createOrchestratorDemo();
+
+// Export for CLI usage
+export default app;
+
+// Backward compatibility - run if executed directly
+if (require.main === module) {
+  console.log('🎯 SmallTalk Orchestrator Demo');
+  console.log('=====================================');
+  console.log('✅ Orchestrator is ready! Intelligent agent routing enabled.');
+  
+  console.log('\n🤖 Available Agents:');
+  app.listAgents().forEach(agentName => {
+    const agent = app.getAgent(agentName);
+    console.log(`   • ${agentName}: ${agent?.config.expertise?.join(', ')}`);
+  });
+
+  console.log('\n🎯 Orchestration Features:');
+  console.log('   • Automatic agent selection based on user intent');
+  console.log('   • Smart handoffs when expertise changes');
+  console.log('   • Multi-step plan generation and execution');
+  console.log('   • Real-time response streaming');
+  console.log('   • User intervention during plan execution');
+
+  console.log('\n📝 Try these example messages to see orchestration:');
+  console.log('   • "I\'m a beginner, how do I start programming?"');
+  console.log('   • "Explain the theory behind quick sort algorithm"');
+  console.log('   • "I have a bug in my JavaScript code"');
+  console.log('   • "What architecture should I use for a large-scale system?"');
+  console.log('   • "Please introduce yourselves" (creates multi-step plan)');
+
+  console.log('\n🎛️ Enhanced Commands:');
+  console.log('   • /stats - Show orchestration statistics');
+  console.log('   • /plans - List active execution plans');
+  console.log('   • /pause <plan_id> - Pause plan execution');
+  console.log('   • /resume <plan_id> - Resume paused plan');
+  console.log('   • /status - Show system status');
+
+  console.log('\n🚀 Start chatting to see intelligent agent routing in action!');
   console.log('Type your message and watch the orchestrator choose the best agent for you!\n');
+  
+  app.start().catch(console.error);
 }
-
-// Run the demo
-if (import.meta.url === `file://${process.argv[1]}`) {
-  demonstrateOrchestration().catch(console.error);
-}
-
-export { demonstrateOrchestration };

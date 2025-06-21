@@ -1,72 +1,60 @@
-#!/usr/bin/env node
-
 import {
   SmallTalk,
   WebInterface,
-  createWebAPI,
-  createAgent
+  createAgent,
+  PlaygroundConfig
 } from '../src/index.js';
 
-async function main() {
-  console.log('🌐 SmallTalk Web API Server');
-  console.log('===========================');
+// Playground configuration for web mode (API-only, no chat UI)
+export const playgroundConfig: PlaygroundConfig = {
+  port: 3001,
+  host: 'localhost',
+  title: '🌐 SmallTalk Web API',
+  description: 'RESTful API server with WebSocket support for agent interactions',
+  orchestrationMode: false,
+  enableChatUI: false // API-only mode
+};
 
-  // Create the SmallTalk framework
+async function createWebAPIServer() {
+  // Create the SmallTalk framework with orchestration
   const app = new SmallTalk({
     llmProvider: 'openai',
     model: 'gpt-4o',
-    debugMode: true
+    debugMode: true,
+    orchestration: true
   });
 
-  // Add some agents
+  // Add agents with capabilities
   const helper = createAgent('Assistant', 'A helpful general-purpose AI assistant');
   const coder = createAgent('Coder', 'A programming expert who helps with code', {
     temperature: 0.3
   });
 
-  app.addAgent(helper);
-  app.addAgent(coder);
+  app.addAgent(helper, {
+    expertise: ['general assistance', 'questions', 'help'],
+    complexity: 'basic',
+    taskTypes: ['assistance', 'conversation'],
+    contextAwareness: 0.8,
+    collaborationStyle: 'helpful'
+  });
+
+  app.addAgent(coder, {
+    expertise: ['programming', 'coding', 'debugging', 'software development'],
+    complexity: 'advanced',
+    taskTypes: ['coding', 'debugging', 'technical'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'technical'
+  });
 
   // Create API-only web interface (no HTML frontend)
-  const webAPI = createWebAPI({
+  const webAPI = new WebInterface({
     port: 3000,
     host: 'localhost'
   });
 
   app.addInterface(webAPI);
 
-  // Start the framework
-  await app.start();
-
-  console.log('\n✅ SmallTalk Web API Server is running!');
-  console.log('\n🔗 API Endpoints:');
-  console.log('• GET  http://localhost:3000/api/status - Server status');
-  console.log('• GET  http://localhost:3000/api/agents - List available agents');
-  console.log('• POST http://localhost:3000/api/chat - Send chat message');
-  
-  console.log('\n💻 Example API Calls:');
-  console.log('\n1. Check status:');
-  console.log('   curl http://localhost:3000/api/status');
-  
-  console.log('\n2. Send message:');
-  console.log('   curl -X POST http://localhost:3000/api/chat \\');
-  console.log('     -H "Content-Type: application/json" \\');
-  console.log('     -d \'{"message": "Hello, can you help me?"}\'');
-  
-  console.log('\n3. Switch agent and send message:');
-  console.log('   curl -X POST http://localhost:3000/api/chat \\');
-  console.log('     -H "Content-Type: application/json" \\');
-  console.log('     -d \'{"message": "/agent Coder"}\'');
-  
-  console.log('\n🔌 WebSocket Connection:');
-  console.log('   Connect to ws://localhost:3000 for real-time chat');
-  
-  console.log('\n📝 WebSocket Events:');
-  console.log('• Emit: "chat_message" with {message: "your message"}');
-  console.log('• Listen: "message_response" for AI responses');
-  console.log('• Listen: "welcome" for connection confirmation');
-
-  console.log('\n🛑 Press Ctrl+C to stop the server\n');
+  return app;
 }
 
 // Handle graceful shutdown
@@ -80,8 +68,31 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Run the API server
-main().catch((error) => {
-  console.error('❌ Failed to start API server:', error);
-  process.exit(1);
-});
+// Create the app instance
+const app = await createWebAPIServer();
+
+// Export for CLI usage
+export default app;
+
+// Backward compatibility - run if executed directly
+if (require.main === module) {
+  console.log('🌐 SmallTalk Web API Server');
+  console.log('============================');
+  console.log('✅ API server ready!');
+  console.log('Available agents:', app.listAgents().join(', '));
+  
+  console.log('\n🔌 WebSocket Connection:');
+  console.log('   Connect to ws://localhost:3000 for real-time chat');
+  
+  console.log('\n📝 WebSocket Events:');
+  console.log('• Emit: "chat_message" with {message: "your message"}');
+  console.log('• Listen: "message_response" for AI responses');
+  console.log('• Listen: "welcome" for connection confirmation');
+
+  console.log('\n🛑 Press Ctrl+C to stop the server\n');
+  
+  app.start().catch((error) => {
+    console.error('❌ Failed to start API server:', error);
+    process.exit(1);
+  });
+}
