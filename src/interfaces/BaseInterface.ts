@@ -9,6 +9,11 @@ export abstract class BaseInterface extends EventEmitter implements IBaseInterfa
   protected config: InterfaceConfig;
   protected isRunning = false;
   protected messageHandler?: (message: string) => Promise<string>;
+  protected streamingMessageHandler?: (chunk: string, messageId: string) => void;
+  protected interruptionHandler?: (message: string) => void;
+  protected framework?: any;
+  public supportStreaming: boolean = false;
+  public supportInterruption: boolean = false;
 
   constructor(config: InterfaceConfig) {
     super();
@@ -21,6 +26,14 @@ export abstract class BaseInterface extends EventEmitter implements IBaseInterfa
 
   public onMessage(callback: (message: string) => Promise<string>): void {
     this.messageHandler = callback;
+  }
+
+  public onStreamingMessage?(callback: (chunk: string, messageId: string) => void): void {
+    this.streamingMessageHandler = callback;
+  }
+
+  public onInterruption?(callback: (message: string) => void): void {
+    this.interruptionHandler = callback;
   }
 
   protected async handleIncomingMessage(content: string): Promise<string> {
@@ -37,6 +50,20 @@ export abstract class BaseInterface extends EventEmitter implements IBaseInterfa
     }
   }
 
+  protected handleStreamingMessage(chunk: string, messageId: string): void {
+    if (this.streamingMessageHandler) {
+      this.streamingMessageHandler(chunk, messageId);
+    }
+    this.emit('streaming_message', { chunk, messageId });
+  }
+
+  protected handleInterruption(message: string): void {
+    if (this.interruptionHandler) {
+      this.interruptionHandler(message);
+    }
+    this.emit('interruption', { message });
+  }
+
   public getConfig(): Readonly<InterfaceConfig> {
     return Object.freeze({ ...this.config });
   }
@@ -48,6 +75,10 @@ export abstract class BaseInterface extends EventEmitter implements IBaseInterfa
 
   public isActive(): boolean {
     return this.isRunning;
+  }
+
+  public setFramework(framework: any): void {
+    this.framework = framework;
   }
 
   protected log(level: 'info' | 'warn' | 'error', message: string, data?: any): void {

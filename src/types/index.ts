@@ -12,7 +12,11 @@ export interface SmallTalkConfig {
     satisfactionWeight?: number;
     maxSwitchesPerConversation?: number;
     learningRate?: number;
+    maxAutoResponses?: number;
+    enableInterruption?: boolean;
+    streamResponses?: boolean;
   };
+  historyManagement?: HistoryManagementConfig;
 }
 
 export interface AgentConfig {
@@ -33,6 +37,9 @@ export interface ChatMessage {
   timestamp: Date;
   agentName?: string;
   metadata?: Record<string, unknown>;
+  streaming?: boolean;
+  planId?: string;
+  stepId?: string;
 }
 
 export interface ChatSession {
@@ -82,6 +89,55 @@ export interface MemoryConfig {
   contextSize?: number;
 }
 
+export interface HistoryManagementConfig {
+  strategy: 'full' | 'sliding_window' | 'summarization' | 'hybrid' | 'vector_retrieval';
+  maxMessages?: number;
+  slidingWindowSize?: number;
+  summaryModel?: string;
+  summaryInterval?: number;
+  contextSize?: number;
+  vectorStoreConfig?: {
+    provider: string;
+    model: string;
+    chunkSize: number;
+    overlapSize: number;
+  };
+}
+
+export interface ExecutionPlan {
+  id: string;
+  steps: PlanStep[];
+  currentStepIndex: number;
+  status: 'pending' | 'executing' | 'paused' | 'completed' | 'failed';
+  createdAt: Date;
+  updatedAt: Date;
+  userIntent: string;
+  expectedOutcome: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PlanStep {
+  id: string;
+  agentName: string;
+  action: string;
+  parameters: Record<string, unknown>;
+  expectedOutput: string;
+  status: 'pending' | 'executing' | 'completed' | 'failed' | 'skipped';
+  startedAt?: Date;
+  completedAt?: Date;
+  output?: string;
+  error?: string;
+}
+
+export interface InterruptionContext {
+  planId: string;
+  currentStepIndex: number;
+  userMessage: string;
+  timestamp: Date;
+  sessionId: string;
+  userId: string;
+}
+
 export interface AgentPersonality {
   name: string;
   description: string;
@@ -104,6 +160,11 @@ export interface BaseInterface {
   stop(): Promise<void>;
   sendMessage(message: ChatMessage): Promise<void>;
   onMessage(callback: (message: string) => Promise<string>): void;
+  setFramework(framework: any): void;
+  onStreamingMessage?(callback: (chunk: string, messageId: string) => void): void;
+  onInterruption?(callback: (message: string) => void): void;
+  supportStreaming?: boolean;
+  supportInterruption?: boolean;
 }
 
 export interface FlowContext {

@@ -6,6 +6,12 @@
  * This example demonstrates the intelligent agent orchestration system that
  * automatically routes conversations to the most suitable agent based on
  * user intent, topic complexity, and agent capabilities.
+ * 
+ * Enhanced with Interactive Orchestrator features:
+ * - Multi-step plan generation and execution
+ * - Real-time response streaming
+ * - User intervention during plan execution
+ * - Advanced history management strategies
  */
 
 import { SmallTalk } from '../src/core/SmallTalk.js';
@@ -266,6 +272,33 @@ async function demonstrateOrchestration() {
     }
   });
 
+  // Enhanced event listeners for plan execution
+  app.on('plan_created', (event) => {
+    console.log(`\n📋 Plan created: ${event.planId.slice(0, 8)}...`);
+  });
+
+  app.on('step_started', (event) => {
+    if (event.data?.step) {
+      console.log(`▶️  Step: ${event.data.step.agentName} - ${event.data.step.action.slice(0, 50)}...`);
+    }
+  });
+
+  app.on('step_completed', (event) => {
+    console.log(`✅ Step completed`);
+  });
+
+  app.on('plan_completed', (event) => {
+    console.log(`\n🎉 Plan completed: ${event.planId.slice(0, 8)}...`);
+  });
+
+  app.on('user_interrupted', (event) => {
+    console.log(`\n⚡ Plan paused for user input`);
+  });
+
+  app.on('auto_response_limit_reached', (data) => {
+    console.log(`\n⚠️  Auto-response limit reached. Please provide input to continue.`);
+  });
+
   // Start the application
   await app.start();
 
@@ -286,23 +319,73 @@ async function demonstrateOrchestration() {
   console.log('   • "Explain the theory behind quick sort algorithm"');
   console.log('   • "I have a bug in my JavaScript code"');
   console.log('   • "What architecture should I use for a large-scale system?"');
-  console.log('   • "How do binary search trees work?"');
+  console.log('   • "Please introduce yourselves" (creates multi-step plan)');
+  console.log('   • During plan execution, type to interrupt and redirect');
 
   console.log('\n🎛️ Commands:');
   console.log('   • /orchestration on|off - Enable/disable orchestration');
   console.log('   • /agent <name> - Manually switch to specific agent');
   console.log('   • /stats - Show orchestration statistics');
+  console.log('   • /plans - List active execution plans');
+  console.log('   • /pause <plan_id> - Pause plan execution');
+  console.log('   • /resume <plan_id> - Resume paused plan');
+  console.log('   • /status - Show system status');
   console.log('   • /quit - Exit the demo');
 
-  // Add CLI command handlers
-  cli.addCommand('stats', () => {
+  // Add enhanced CLI command handlers
+  cli.registerCommand('stats', () => {
     const stats = app.getOrchestrationStats();
-    console.log('\n📊 Orchestration Stats:');
+    console.log('\n📋 Orchestration Stats:');
     console.log(`   Enabled: ${stats.enabled}`);
     console.log(`   Total Agents: ${stats.totalAgents}`);
+    console.log(`   Active Plans: ${stats.activePlans || 0}`);
     console.log(`   Current Assignments:`, stats.currentAgentAssignments);
     console.log('');
-    return Promise.resolve('Stats displayed above.');
+  });
+
+  cli.registerCommand('plans', () => {
+    const plans = app.getActivePlans();
+    if (plans.length === 0) {
+      console.log('\n📜 No active plans');
+    } else {
+      console.log('\n📜 Active Plans:');
+      plans.forEach(plan => {
+        console.log(`   • ${plan.id.slice(0, 8)}: ${plan.userIntent} (${plan.status})`);
+      });
+    }
+    console.log('');
+  });
+
+  cli.registerCommand('pause', async (args) => {
+    if (args.length > 0) {
+      const planId = args[0];
+      const success = app.pausePlan(planId);
+      console.log(success ? `\n⏸️  Plan ${planId.slice(0, 8)} paused` : `\n❌ Plan ${planId} not found`);
+    } else {
+      console.log('\n⚠️  Usage: /pause <plan_id>');
+    }
+  });
+
+  cli.registerCommand('resume', async (args) => {
+    if (args.length > 0) {
+      const planId = args[0];
+      const success = await app.resumePlan(planId, 'demo-session', 'demo-user');
+      console.log(success ? `\n▶️  Plan ${planId.slice(0, 8)} resumed` : `\n❌ Plan ${planId} could not be resumed`);
+    } else {
+      console.log('\n⚠️  Usage: /resume <plan_id>');
+    }
+  });
+
+  cli.registerCommand('status', () => {
+    const stats = app.getStats();
+    console.log('\n🔍 System Status:');
+    console.log(`   Agents: ${stats.agentCount}`);
+    console.log(`   Active Sessions: ${stats.activeSessionCount}`);
+    console.log(`   Orchestration: ${stats.orchestrationStats?.enabled ? 'Enabled' : 'Disabled'}`);
+    console.log(`   Streaming: ${stats.streamingEnabled ? 'Enabled' : 'Disabled'}`);
+    console.log(`   Interruption: ${stats.interruptionEnabled ? 'Enabled' : 'Disabled'}`);
+    console.log(`   History Strategy: ${stats.memoryStats?.historyStrategy || 'N/A'}`);
+    console.log('');
   });
 
   console.log('\n🚀 Orchestrator is ready! Start chatting to see intelligent agent routing in action.');

@@ -32,6 +32,7 @@ export interface ConversationContext {
   urgency: 'low' | 'medium' | 'high' | 'critical';
 }
 
+
 export class OrchestratorAgent extends Agent {
   private agentRegistry: Map<string, { agent: Agent; capabilities: AgentCapabilities }> = new Map();
   private conversationHistory: Map<string, ConversationContext> = new Map();
@@ -41,88 +42,78 @@ export class OrchestratorAgent extends Agent {
     priority: number;
   }> = [];
 
-  constructor(config: SmallTalkConfig) {
-    super({
+  constructor(config: SmallTalkConfig & Partial<import('../types/index.js').AgentConfig> = {}) {
+    // Compose AgentConfig using SmallTalkConfig as base
+    const agentConfig = {
       name: 'Orchestrator',
-      personality: 'analytical, decisive, efficient, collaborative',
-      expertise: ['task routing', 'agent coordination', 'workflow optimization', 'context analysis'],
-      systemPrompt: `You are the Orchestrator, the intelligent routing system that decides which agent should handle each interaction.
+      personality:
+        'I am the Orchestrator, an intelligent routing system that decides which agent should handle each interaction. My goal is to analyze user messages, route conversations to the most suitable agent, and manage handoffs smoothly to optimize the conversation flow and user satisfaction.',
+      systemPrompt: undefined,
+      expertise: [],
+      ...config
+    };
+    super(agentConfig);
 
-Your responsibilities:
-🎯 Analyze user messages to understand intent and complexity
-🤖 Route conversations to the most suitable agent
-🔄 Manage agent handoffs and context transfer
-📊 Optimize conversation flow and user satisfaction
-🧠 Learn from interaction patterns to improve routing
+    const orchestratorTools: ToolDefinition[] = [
+      {
+        name: 'analyzeUserIntent',
+        description: 'Analyze user message to determine intent and requirements',
+        parameters: {
+          type: 'object',
+          properties: {
+            message: { type: 'string', description: 'User message to analyze' },
+            context: { type: 'object', description: 'Conversation context' }
+          },
+          required: ['message']
+        },
+        handler: this.analyzeUserIntent.bind(this)
+      },
+      {
+        name: 'selectBestAgent',
+        description: 'Select the most suitable agent for a task',
+        parameters: {
+          type: 'object',
+          properties: {
+            intent: { type: 'string', description: 'User intent' },
+            complexity: { type: 'number', description: 'Task complexity 0-1' },
+            topic: { type: 'string', description: 'Conversation topic' },
+            urgency: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] }
+          },
+          required: ['intent', 'topic']
+        },
+        handler: this.selectBestAgent.bind(this)
+      },
+      {
+        name: 'createHandoffPlan',
+        description: 'Create a plan for handing off to another agent',
+        parameters: {
+          type: 'object',
+          properties: {
+            targetAgent: { type: 'string', description: 'Target agent name' },
+            context: { type: 'object', description: 'Context to transfer' },
+            reason: { type: 'string', description: 'Reason for handoff' }
+          },
+          required: ['targetAgent', 'reason']
+        },
+        handler: this.createHandoffPlan.bind(this)
+      },
+      {
+        name: 'evaluateAgentPerformance',
+        description: 'Evaluate how well an agent handled a task',
+        parameters: {
+          type: 'object',
+          properties: {
+            agentName: { type: 'string', description: 'Agent name' },
+            taskResult: { type: 'object', description: 'Task completion data' },
+            userFeedback: { type: 'object', description: 'User satisfaction data' }
+          },
+          required: ['agentName']
+        },
+        handler: this.evaluateAgentPerformance.bind(this)
+      }
+    ];
 
-You make decisions based on:
-- User intent and topic analysis
-- Agent expertise and capabilities 
-- Conversation context and history
-- Task complexity and urgency
-- User satisfaction and preferences
-
-Always explain your routing decisions briefly and ensure smooth handoffs.`,
-      
-      tools: [
-        {
-          name: 'analyzeUserIntent',
-          description: 'Analyze user message to determine intent and requirements',
-          parameters: {
-            type: 'object',
-            properties: {
-              message: { type: 'string', description: 'User message to analyze' },
-              context: { type: 'object', description: 'Conversation context' }
-            },
-            required: ['message']
-          },
-          handler: this.analyzeUserIntent.bind(this)
-        },
-        {
-          name: 'selectBestAgent',
-          description: 'Select the most suitable agent for a task',
-          parameters: {
-            type: 'object',
-            properties: {
-              intent: { type: 'string', description: 'User intent' },
-              complexity: { type: 'number', description: 'Task complexity 0-1' },
-              topic: { type: 'string', description: 'Conversation topic' },
-              urgency: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] }
-            },
-            required: ['intent', 'topic']
-          },
-          handler: this.selectBestAgent.bind(this)
-        },
-        {
-          name: 'createHandoffPlan',
-          description: 'Create a plan for handing off to another agent',
-          parameters: {
-            type: 'object',
-            properties: {
-              targetAgent: { type: 'string', description: 'Target agent name' },
-              context: { type: 'object', description: 'Context to transfer' },
-              reason: { type: 'string', description: 'Reason for handoff' }
-            },
-            required: ['targetAgent', 'reason']
-          },
-          handler: this.createHandoffPlan.bind(this)
-        },
-        {
-          name: 'evaluateAgentPerformance',
-          description: 'Evaluate how well an agent handled a task',
-          parameters: {
-            type: 'object',
-            properties: {
-              agentName: { type: 'string', description: 'Agent name' },
-              taskResult: { type: 'object', description: 'Task completion data' },
-              userFeedback: { type: 'object', description: 'User satisfaction data' }
-            },
-            required: ['agentName']
-          },
-          handler: this.evaluateAgentPerformance.bind(this)
-        }
-      ]
-    });
+    orchestratorTools.forEach(tool => this.addTool(tool));
   }
 
   // Register an agent with the orchestrator
@@ -203,10 +194,7 @@ Always explain your routing decisions briefly and ensure smooth handoffs.`,
   }
 
   // Analyze user intent using NLP and context
-  private async analyzeUserIntent({ message, context }: { 
-    message: string; 
-    context?: ConversationContext; 
-  }): Promise<{
+  private async analyzeUserIntent(params: Record<string, unknown>): Promise<{
     primaryIntent: string;
     secondaryIntents: string[];
     topic: string;
@@ -216,6 +204,7 @@ Always explain your routing decisions briefly and ensure smooth handoffs.`,
     taskType: 'question' | 'request' | 'conversation' | 'problem' | 'creative';
     requiredExpertise: string[];
   }> {
+    const { message, context } = params as { message: string; context?: ConversationContext };
     // Keyword analysis for intent detection
     const intents = this.detectIntents(message);
     const topic = this.extractTopic(message, context);
@@ -238,21 +227,23 @@ Always explain your routing decisions briefly and ensure smooth handoffs.`,
   }
 
   // Select the best agent based on requirements
-  private async selectBestAgent({ intent, complexity, topic, urgency }: {
-    intent: string;
-    complexity?: number;
-    topic: string;
-    urgency?: string;
-  }): Promise<{
+  private async selectBestAgent(params: Record<string, unknown>): Promise<{
     agentName: string;
     reason: string;
     confidence: number;
     fallback?: string;
   }> {
-    const agents = Array.from(this.agentRegistry.entries());
-    const scores = new Map<string, number>();
+    const { intent, complexity, topic, urgency } = params as {
+      intent: string;
+      complexity?: number;
+      topic: string;
+      urgency?: string;
+    };
+    const availableAgents = this.getAvailableAgents();
+    let bestAgent: { name: string; score: number } | null = null;
+    let maxScore = -1;
     
-    for (const [agentName, { capabilities }] of agents) {
+    for (const { name, capabilities } of availableAgents) {
       let score = 0;
       
       // Expertise match (40% weight)
@@ -276,65 +267,69 @@ Always explain your routing decisions briefly and ensure smooth handoffs.`,
       // Context awareness (5% weight)
       score += capabilities.contextAwareness * 0.05;
       
-      scores.set(agentName, score);
+      if (score > maxScore) {
+        maxScore = score;
+        bestAgent = { name, score };
+      }
     }
-    
-    // Get top scoring agent
-    const sortedAgents = Array.from(scores.entries()).sort((a, b) => b[1] - a[1]);
-    const bestAgent = sortedAgents[0];
-    const fallbackAgent = sortedAgents[1];
     
     if (!bestAgent) {
       throw new Error('No suitable agent found');
     }
     
-    const reason = this.generateSelectionReason(bestAgent[0], bestAgent[1], intent, topic);
-    
-    return {
-      agentName: bestAgent[0],
-      reason,
-      confidence: bestAgent[1],
-      fallback: fallbackAgent?.[0]
+    const fallbackAgent = this.findFallbackAgent(bestAgent.name);
+
+    const result: { agentName: string; reason: string; confidence: number; fallback?: string } = {
+      agentName: bestAgent.name,
+      reason: this.generateSelectionReason(bestAgent.name, maxScore, intent, topic),
+      confidence: maxScore,
     };
+    if (fallbackAgent) {
+      result.fallback = fallbackAgent;
+    }
+    return result;
   }
 
   // Create a detailed handoff plan
-  private async createHandoffPlan({ targetAgent, context, reason }: {
-    targetAgent: string;
-    context: Record<string, any>;
-    reason: string;
-  }): Promise<HandoffDecision> {
-    const agentData = this.agentRegistry.get(targetAgent);
+  private async createHandoffPlan(params: Record<string, unknown>): Promise<HandoffDecision> {
+    const { targetAgent, context, reason } = params as {
+      targetAgent: string;
+      context: Record<string, any>;
+      reason: string;
+    };
+    const handoffContext = {
+      ...context,
+      handoffTime: new Date().toISOString(),
+      orchestratorId: this.name,
+    };
     
-    if (!agentData) {
-      throw new Error(`Agent ${targetAgent} not found`);
-    }
-    
-    return {
+    const decision: HandoffDecision = {
       targetAgent,
       reason,
-      confidence: 0.85, // Could be calculated based on match quality
-      contextToTransfer: {
-        ...context,
-        handoffTime: new Date().toISOString(),
-        orchestratorId: nanoid()
-      },
+      confidence: 1, // Placeholder
+      contextToTransfer: handoffContext,
       expectedOutcome: this.predictOutcome(targetAgent, context),
-      fallbackAgent: this.findFallbackAgent(targetAgent)
     };
+
+    const fallbackAgent = this.findFallbackAgent(targetAgent);
+    if (fallbackAgent) {
+      decision.fallbackAgent = fallbackAgent;
+    }
+    
+    return decision;
   }
 
   // Evaluate agent performance for learning
-  private async evaluateAgentPerformance({ agentName, taskResult, userFeedback }: {
-    agentName: string;
-    taskResult?: any;
-    userFeedback?: any;
-  }): Promise<{
+  private async evaluateAgentPerformance(params: Record<string, unknown>): Promise<{
     performance: number;
     recommendations: string[];
     shouldAdjustRouting: boolean;
   }> {
-    // This would integrate with analytics to improve routing over time
+    const { agentName, taskResult, userFeedback } = params as {
+      agentName: string;
+      taskResult?: any;
+      userFeedback?: any;
+    };
     const performance = this.calculatePerformanceScore(taskResult, userFeedback);
     const recommendations = this.generateRecommendations(agentName, performance);
     
@@ -394,25 +389,25 @@ Always explain your routing decisions briefly and ensure smooth handoffs.`,
   }
 
   private assessComplexity(message: string, topic: string): number {
-    let complexity = 0.5; // Base complexity
-    
-    // Technical terms increase complexity
-    const technicalTerms = /\b(algorithm|architecture|implementation|optimization|configuration|integration)\b/i;
-    if (technicalTerms.test(message)) complexity += 0.2;
-    
-    // Multiple questions increase complexity
-    const questionCount = (message.match(/\?/g) || []).length;
-    complexity += Math.min(questionCount * 0.1, 0.3);
-    
-    // Length can indicate complexity
-    if (message.length > 200) complexity += 0.1;
-    if (message.length > 500) complexity += 0.1;
-    
-    // Topic-specific complexity
-    const complexTopics = ['programming', 'medical', 'science'];
-    if (complexTopics.includes(topic)) complexity += 0.1;
-    
-    return Math.min(complexity, 1.0);
+    // Word count and sentence complexity
+    const wordCount = message.split(/\s+/).length;
+    const sentenceCount = (message.match(/[.!?]+/g) || []).length + 1;
+    const complexityScore = wordCount / sentenceCount;
+
+    // Jargon and technical terms
+    const jargon = ['API', 'database', 'frontend', 'backend', 'deployment'];
+    const jargonCount = jargon.filter(j => message.includes(j)).length;
+
+    // Topic-based complexity
+    const topicComplexity: { [key: string]: number } = {
+      'technical_support': 0.7,
+      'billing': 0.4,
+      'sales': 0.3,
+      'general_inquiry': 0.2
+    };
+    const topicMod = topicComplexity[topic] || 0.5;
+
+    return Math.min(1, (complexityScore / 20) + (jargonCount * 0.1) + topicMod);
   }
 
   private assessUrgency(message: string): 'low' | 'medium' | 'high' | 'critical' {
@@ -535,18 +530,15 @@ Always explain your routing decisions briefly and ensure smooth handoffs.`,
     return Math.min(match, 1.0);
   }
 
-  private calculateComplexityMatch(agentComplexity: string, taskComplexity: number): number {
-    const complexityLevels = {
-      'basic': 0.25,
-      'intermediate': 0.5,
-      'advanced': 0.75,
-      'expert': 1.0
+  private calculateComplexityMatch(agentComplexity: 'basic' | 'intermediate' | 'advanced' | 'expert', taskComplexity: number): number {
+    const complexityMap: { [key: string]: number } = {
+      basic: 0.25,
+      intermediate: 0.5,
+      advanced: 0.75,
+      expert: 1.0,
     };
-    
-    const agentLevel = complexityLevels[agentComplexity] || 0.5;
-    const difference = Math.abs(agentLevel - taskComplexity);
-    
-    return 1 - difference; // Lower difference = better match
+    const agentScore = complexityMap[agentComplexity] || 0.5;
+    return 1 - Math.abs(agentScore - taskComplexity);
   }
 
   private calculateToolMatch(agentTools: string[], intent: string, topic: string): number {

@@ -14,6 +14,7 @@ import { Chat } from './Chat.js';
 import { Memory } from './Memory.js';
 import { MCPClient } from './MCPClient.js';
 import { OrchestratorAgent, AgentCapabilities, HandoffDecision } from '../agents/OrchestratorAgent.js';
+import { InteractiveOrchestratorAgent, PlanExecutionEvent, StreamingResponse } from '../agents/InteractiveOrchestratorAgent.js';
 
 export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private config: SmallTalkConfig;
@@ -22,11 +23,13 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private chat: Chat;
   private memory: Memory;
   private mcpClient?: MCPClient;
-  private orchestrator: OrchestratorAgent;
+  private orchestrator: InteractiveOrchestratorAgent;
   private isRunning = false;
   private activeSessions: Map<string, ChatSession> = new Map();
   private currentAgents: Map<string, string> = new Map(); // userId -> agentName
   private orchestrationEnabled = true;
+  private streamingEnabled = false;
+  private interruptionEnabled = false;
 
   constructor(config: SmallTalkConfig = {}) {
     super();
@@ -48,9 +51,16 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
       contextSize: 4000
     });
 
-    // Initialize orchestrator
-    this.orchestrator = new OrchestratorAgent(this.config);
+    // Initialize interactive orchestrator
+    this.orchestrator = new InteractiveOrchestratorAgent({
+      ...this.config,
+      maxAutoResponses: this.config.orchestrationConfig?.maxAutoResponses || 10
+    });
     this.orchestrationEnabled = this.config.orchestration !== false;
+    this.streamingEnabled = this.config.orchestrationConfig?.streamResponses || false;
+    this.interruptionEnabled = this.config.orchestrationConfig?.enableInterruption || true;
+
+    this.setupOrchestratorEventHandlers();
 
     this.setupEventHandlers();
   }
@@ -60,6 +70,58 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     this.on('agent_switch', this.handleAgentSwitch.bind(this));
     this.on('session_start', this.handleSessionStart.bind(this));
     this.on('session_end', this.handleSessionEnd.bind(this));
+  }
+
+  private setupOrchestratorEventHandlers(): void {
+    // Listen to plan execution events
+    this.orchestrator.on('plan_created', (event: PlanExecutionEvent) => {
+      this.emit('plan_created', event);
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] 📋 Plan created: ${event.planId}`);
+      }
+    });
+
+    this.orchestrator.on('step_started', (event: PlanExecutionEvent) => {
+      this.emit('step_started', event);
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] ▶️  Step started: ${event.stepId} in plan ${event.planId}`);
+      }
+    });
+
+    this.orchestrator.on('step_completed', (event: PlanExecutionEvent) => {
+      this.emit('step_completed', event);
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] ✅ Step completed: ${event.stepId} in plan ${event.planId}`);
+      }
+    });
+
+    this.orchestrator.on('user_interrupted', (event: PlanExecutionEvent) => {
+      this.emit('user_interrupted', event);
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] ⏸️  User interrupted plan: ${event.planId}`);
+      }
+    });
+
+    this.orchestrator.on('plan_completed', (event: PlanExecutionEvent) => {
+      this.emit('plan_completed', event);
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] 🎉 Plan completed: ${event.planId}`);
+      }
+    });
+
+    this.orchestrator.on('auto_response_limit_reached', (data) => {
+      this.emit('auto_response_limit_reached', data);
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] 🛑 Auto-response limit reached for user: ${data.userId}`);
+      }
+    });
+
+    // Setup streaming response handler
+    if (this.streamingEnabled) {
+      this.orchestrator.onStreamingResponse((response: StreamingResponse) => {
+        this.handleStreamingResponse(response);
+      });
+    }
   }
 
   public addAgent(agent: Agent, capabilities?: AgentCapabilities): void {
@@ -101,8 +163,15 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     return Array.from(this.agents.keys());
   }
 
+  public getAgents(): Agent[] {
+    return Array.from(this.agents.values());
+  }
+
   public addInterface(iface: BaseInterface): void {
     this.interfaces.push(iface);
+    
+    // Set framework reference so interface can access agents
+    iface.setFramework(this);
     
     // Set up message handling for this interface
     iface.onMessage(async (message: string) => {
@@ -269,15 +338,40 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     let selectedAgentName: string;
     let handoffReason: string | null = null;
 
-    // Use orchestrator to decide which agent should handle this message
+    // Use interactive orchestrator for enhanced planning and execution
     if (this.orchestrationEnabled && this.agents.size > 1) {
       try {
         const currentAgent = this.currentAgents.get(effectiveUserId) || session.activeAgent;
-        const handoffDecision = await this.orchestrator.orchestrate(content, effectiveUserId, currentAgent);
+        const orchestrationResult = await this.orchestrator.orchestrateWithPlan(
+          content, 
+          effectiveUserId, 
+          session.id, 
+          currentAgent
+        );
         
-        if (handoffDecision) {
-          selectedAgentName = handoffDecision.targetAgent;
-          handoffReason = handoffDecision.reason;
+        if (!orchestrationResult.shouldExecute) {
+          // Auto-response limit reached or other constraint
+          return 'I\'ve reached the maximum number of automatic responses. Please let me know if you\'d like me to continue.';
+        }
+
+        if (orchestrationResult.plan) {
+          // Execute the plan step by step
+          const planExecuted = await this.orchestrator.executePlan(
+            orchestrationResult.plan.id,
+            session.id,
+            effectiveUserId,
+            this.streamingEnabled ? (response) => this.handleStreamingResponse(response) : undefined
+          );
+          
+          if (planExecuted) {
+            return 'Plan executed successfully. All agents have completed their tasks.';
+          } else {
+            return 'Plan execution was paused or failed. Please provide guidance to continue.';
+          }
+        } else if (orchestrationResult.handoff) {
+          // Standard handoff
+          selectedAgentName = orchestrationResult.handoff.targetAgent;
+          handoffReason = orchestrationResult.handoff.reason;
           
           // Update current agent tracking
           this.currentAgents.set(effectiveUserId, selectedAgentName);
@@ -288,7 +382,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
             fromAgent: currentAgent,
             toAgent: selectedAgentName,
             reason: handoffReason,
-            confidence: handoffDecision.confidence
+            confidence: orchestrationResult.handoff.confidence
           });
           
           if (this.config.debugMode) {
@@ -299,7 +393,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
           selectedAgentName = currentAgent || this.listAgents()[0];
         }
       } catch (error) {
-        console.error('[SmallTalk] Orchestration error:', error);
+        console.error('[SmallTalk] Interactive orchestration error:', error);
         // Fallback to current or first available agent
         selectedAgentName = this.currentAgents.get(effectiveUserId) || session.activeAgent || this.listAgents()[0];
       }
@@ -323,14 +417,14 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
       config: this.config
     };
 
-    // Truncate context if needed
-    const truncatedMessages = await this.memory.truncateContext(session.messages);
-    const truncatedSession = { ...session, messages: truncatedMessages };
-    const truncatedContext = { ...context, session: truncatedSession };
+    // Use enhanced history management
+    const managedMessages = await this.memory.manageHistory(session.messages);
+    const managedSession = { ...session, messages: managedMessages };
+    const managedContext = { ...context, session: managedSession };
 
     // Generate response from agent
     try {
-      let response = await agent.generateResponse(content, truncatedContext);
+      let response = await agent.generateResponse(content, managedContext);
       
       // Add handoff explanation if orchestrator switched agents
       if (handoffReason && this.config.debugMode) {
@@ -452,6 +546,9 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     }
     
     this.currentAgents.set(userId, agentName);
+    // Reset auto-response count on manual switch
+    this.orchestrator.resetAutoResponseCount(userId);
+    
     this.emit('agent_forced_switch', { userId, agentName });
     
     if (this.config.debugMode) {
@@ -527,19 +624,91 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     this.emit('config_updated', { config: this.config });
   }
 
+  // Enhanced streaming and interruption methods
+  private handleStreamingResponse(response: StreamingResponse): void {
+    // Broadcast streaming response to all interfaces that support it
+    this.interfaces.forEach(iface => {
+      if (iface.onStreamingMessage) {
+        iface.onStreamingMessage(response.chunk, response.messageId);
+      }
+    });
+    
+    this.emit('streaming_response', response);
+  }
+
+  public enableStreaming(enabled: boolean = true): void {
+    this.streamingEnabled = enabled;
+    if (this.config.debugMode) {
+      console.log(`[SmallTalk] Streaming ${enabled ? 'enabled' : 'disabled'}`);
+    }
+  }
+
+  public enableInterruption(enabled: boolean = true): void {
+    this.interruptionEnabled = enabled;
+    if (this.config.debugMode) {
+      console.log(`[SmallTalk] Interruption ${enabled ? 'enabled' : 'disabled'}`);
+    }
+  }
+
+  public getActivePlans(): any[] {
+    return this.orchestrator.getAllPlans();
+  }
+
+  public getPlan(planId: string): any {
+    return this.orchestrator.getPlan(planId);
+  }
+
+  public pausePlan(planId: string): boolean {
+    const plan = this.orchestrator.getPlan(planId);
+    if (plan) {
+      plan.status = 'paused';
+      return true;
+    }
+    return false;
+  }
+
+  public resumePlan(planId: string, sessionId: string, userId: string): Promise<boolean> {
+    const plan = this.orchestrator.getPlan(planId);
+    if (plan && plan.status === 'paused') {
+      plan.status = 'pending';
+      return this.orchestrator.executePlan(planId, sessionId, userId);
+    }
+    return Promise.resolve(false);
+  }
+
+  public updateMaxAutoResponses(max: number): void {
+    this.orchestrator.updateMaxAutoResponses(max);
+  }
+
+  public resetAutoResponseCount(userId: string): void {
+    this.orchestrator.resetAutoResponseCount(userId);
+  }
+
+  public getAutoResponseCount(userId: string): number {
+    return this.orchestrator.getAutoResponseCount(userId);
+  }
+
   public getStats(): {
     agentCount: number;
     interfaceCount: number;
     activeSessionCount: number;
     isRunning: boolean;
     mcpEnabled: boolean;
+    orchestrationStats: any;
+    memoryStats: any;
+    streamingEnabled: boolean;
+    interruptionEnabled: boolean;
   } {
     return {
       agentCount: this.agents.size,
       interfaceCount: this.interfaces.length,
       activeSessionCount: this.activeSessions.size,
       isRunning: this.isRunning,
-      mcpEnabled: !!this.mcpClient
+      mcpEnabled: !!this.mcpClient,
+      orchestrationStats: this.orchestrator.getStats(),
+      memoryStats: this.memory.getStats(),
+      streamingEnabled: this.streamingEnabled,
+      interruptionEnabled: this.interruptionEnabled
     };
   }
 }

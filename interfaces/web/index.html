@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>SmallTalk - AI Chat Framework</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" rel="stylesheet">
@@ -42,6 +45,7 @@
                                     <li>Switch agents with: <code>/agent &lt;name&gt;</code></li>
                                     <li>Get help with: <code>/help</code></li>
                                     <li>Clear chat with: <code>/clear</code></li>
+                                    <li id="orchestrationTip" style="display:none;">Try: "Please introduce yourselves" for multi-agent plans</li>
                                 </ul>
                             </div>
                         </div>
@@ -93,6 +97,32 @@
                 </div>
             </div>
 
+            <!-- Orchestration Panel (shown when orchestration is enabled) -->
+            <div class="sidebar-section" id="orchestrationPanel" style="display:none;">
+                <h3>🎯 Orchestration</h3>
+                <div class="orchestration-status" id="orchestrationStatus">
+                    <div class="status-indicator">
+                        <span class="status-dot orchestration"></span>
+                        <span>Interactive Mode</span>
+                    </div>
+                </div>
+                
+                <!-- Active Plans -->
+                <div class="plans-container" id="plansContainer">
+                    <h4>📋 Active Plans</h4>
+                    <div class="plans-list" id="plansList">
+                        <div class="no-plans">No active plans</div>
+                    </div>
+                </div>
+                
+                <!-- Plan Controls -->
+                <div class="plan-controls" id="planControls" style="display:none;">
+                    <button class="control-button pause-plan" id="pausePlanBtn">⏸️ Pause</button>
+                    <button class="control-button resume-plan" id="resumePlanBtn">▶️ Resume</button>
+                    <button class="control-button interrupt-plan" id="interruptBtn">⚡ Interrupt</button>
+                </div>
+            </div>
+
             <!-- Chat Controls -->
             <div class="sidebar-section">
                 <h3>⚙️ Controls</h3>
@@ -124,6 +154,10 @@
                         <div class="stat-value" id="agentSwitches">0</div>
                         <div class="stat-label">Agent Switches</div>
                     </div>
+                    <div class="stat-item" id="planStatsContainer" style="display:none;">
+                        <div class="stat-value" id="plansExecuted">0</div>
+                        <div class="stat-label">Plans Executed</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -143,6 +177,15 @@
                     <li><code>/help</code> - Show this help message</li>
                     <li><code>/clear</code> - Clear the chat history</li>
                     <li><code>/agents</code> - List available agents</li>
+                    <li id="orchestrationCommands" style="display:none;">
+                        <strong>Orchestration Commands:</strong>
+                        <ul>
+                            <li><code>/plans</code> - List active plans</li>
+                            <li><code>/pause &lt;plan_id&gt;</code> - Pause plan execution</li>
+                            <li><code>/resume &lt;plan_id&gt;</code> - Resume paused plan</li>
+                            <li><code>/status</code> - Show orchestration status</li>
+                        </ul>
+                    </li>
                 </ul>
                 
                 <h3>Features</h3>
@@ -152,6 +195,15 @@
                     <li><strong>Markdown Support:</strong> Rich text formatting in messages</li>
                     <li><strong>Code Highlighting:</strong> Syntax highlighting for code blocks</li>
                     <li><strong>Export/Import:</strong> Save and load chat sessions</li>
+                    <li id="orchestrationFeatures" style="display:none;">
+                        <strong>Interactive Orchestration:</strong>
+                        <ul>
+                            <li>Multi-step plan execution</li>
+                            <li>Real-time response streaming</li>
+                            <li>User interruption and re-planning</li>
+                            <li>Intelligent history management</li>
+                        </ul>
+                    </li>
                 </ul>
 
                 <h3>Keyboard Shortcuts</h3>

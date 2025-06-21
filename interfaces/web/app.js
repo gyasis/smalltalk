@@ -7,6 +7,11 @@ class SmallTalkWebApp {
         this.messageCount = 0;
         this.agentSwitches = 0;
         this.agents = [];
+        this.orchestrationEnabled = false;
+        this.streamingEnabled = false;
+        this.activePlans = [];
+        this.plansExecuted = 0;
+        this.currentStreamingMessage = null;
         
         this.initializeElements();
         this.initializeSocket();
@@ -38,6 +43,23 @@ class SmallTalkWebApp {
         // Modal elements
         this.modalOverlay = document.getElementById('modalOverlay');
         this.closeModalBtn = document.getElementById('closeModal');
+        
+        // Orchestration elements
+        this.orchestrationPanel = document.getElementById('orchestrationPanel');
+        this.orchestrationStatus = document.getElementById('orchestrationStatus');
+        this.plansContainer = document.getElementById('plansContainer');
+        this.plansList = document.getElementById('plansList');
+        this.planControls = document.getElementById('planControls');
+        this.pausePlanBtn = document.getElementById('pausePlanBtn');
+        this.resumePlanBtn = document.getElementById('resumePlanBtn');
+        this.interruptBtn = document.getElementById('interruptBtn');
+        this.plansExecutedEl = document.getElementById('plansExecuted');
+        this.planStatsContainer = document.getElementById('planStatsContainer');
+        
+        // UI enhancement elements
+        this.orchestrationTip = document.getElementById('orchestrationTip');
+        this.orchestrationFeatures = document.getElementById('orchestrationFeatures');
+        this.orchestrationCommands = document.getElementById('orchestrationCommands');
     }
 
     initializeSocket() {
@@ -80,6 +102,39 @@ class SmallTalkWebApp {
         this.socket.on('error', (error) => {
             this.addSystemMessage(`Error: ${error.message}`, 'error');
         });
+        
+        // Orchestration event handlers
+        this.socket.on('orchestration_status', (data) => {
+            this.handleOrchestrationStatus(data);
+        });
+        
+        this.socket.on('plan_event', (event) => {
+            this.handlePlanEvent(event);
+        });
+        
+        this.socket.on('streaming_response', (response) => {
+            this.handleStreamingResponse(response);
+        });
+        
+        this.socket.on('notification', (notification) => {
+            this.handleNotification(notification);
+        });
+        
+        this.socket.on('plans_update', (data) => {
+            this.updatePlansList(data.plans);
+        });
+        
+        this.socket.on('plan_paused', (data) => {
+            this.handlePlanStatusChange('paused', data.planId);
+        });
+        
+        this.socket.on('plan_resumed', (data) => {
+            this.handlePlanStatusChange('resumed', data.planId);
+        });
+        
+        this.socket.on('interruption_sent', (data) => {
+            this.addSystemMessage(`\u26a1 Plan interrupted: ${data.message}`, 'warning');
+        });
     }
 
     setupEventListeners() {
@@ -105,6 +160,17 @@ class SmallTalkWebApp {
         this.exportChatBtn.addEventListener('click', () => this.exportChat());
         this.importChatBtn.addEventListener('click', () => this.importChat());
         this.helpBtn.addEventListener('click', () => this.showHelp());
+        
+        // Orchestration control buttons
+        if (this.pausePlanBtn) {
+            this.pausePlanBtn.addEventListener('click', () => this.pauseActivePlan());
+        }
+        if (this.resumePlanBtn) {
+            this.resumePlanBtn.addEventListener('click', () => this.resumeActivePlan());
+        }
+        if (this.interruptBtn) {
+            this.interruptBtn.addEventListener('click', () => this.interruptActivePlan());
+        }
 
         // Modal
         this.closeModalBtn.addEventListener('click', () => this.hideModal());
@@ -215,14 +281,19 @@ class SmallTalkWebApp {
         if (this.agents.length === 0) {
             this.addSystemMessage('No agents available');
         } else {
-            const agentList = this.agents.join(', ');
+            const agentList = this.agents.map(agent => agent.name).join(', ');
             this.addSystemMessage(`Available agents: ${agentList}`);
         }
     }
 
-    addMessage(message) {
+    addMessage(message, isStreaming = false) {
         const messageEl = document.createElement('div');
         messageEl.className = `chat-message ${message.role}`;
+        messageEl.setAttribute('data-message-id', message.id);
+        
+        if (isStreaming) {
+            messageEl.classList.add('streaming');
+        }
         
         const headerEl = document.createElement('div');
         headerEl.className = 'message-header';
@@ -240,7 +311,14 @@ class SmallTalkWebApp {
         
         const contentEl = document.createElement('div');
         contentEl.className = 'message-content';
-        contentEl.innerHTML = this.formatMessageContent(message.content);
+        contentEl.innerHTML = this.formatMessage(message.content);
+        
+        if (isStreaming) {
+            const cursorEl = document.createElement('span');
+            cursorEl.className = 'streaming-cursor';
+            cursorEl.textContent = '▋';
+            contentEl.appendChild(cursorEl);
+        }
         
         messageEl.appendChild(headerEl);
         messageEl.appendChild(contentEl);
@@ -253,7 +331,6 @@ class SmallTalkWebApp {
         
         this.messagesContainer.appendChild(messageEl);
         this.scrollToBottom();
-        
         this.messageCount++;
         this.updateStats();
         
@@ -271,8 +348,8 @@ class SmallTalkWebApp {
         this.addMessage(message);
     }
 
-    formatMessageContent(content) {
-        // Convert markdown to HTML
+    formatMessage(content) {
+        // Use marked to convert markdown to HTML
         if (typeof marked !== 'undefined') {
             return marked.parse(content);
         }
@@ -354,21 +431,21 @@ class SmallTalkWebApp {
         agents.forEach(agent => {
             const agentEl = document.createElement('div');
             agentEl.className = 'agent-item';
-            agentEl.dataset.agentName = agent;
+            agentEl.dataset.agentName = agent.name;
             
             const nameEl = document.createElement('div');
             nameEl.className = 'agent-item-name';
-            nameEl.textContent = agent;
+            nameEl.textContent = agent.name;
             
             const descEl = document.createElement('div');
             descEl.className = 'agent-item-desc';
-            descEl.textContent = 'Click to switch to this agent';
+            descEl.textContent = agent.description || 'Click to switch to this agent';
             
             agentEl.appendChild(nameEl);
             agentEl.appendChild(descEl);
             
             agentEl.addEventListener('click', () => {
-                this.switchAgent(agent);
+                this.switchAgent(agent.name);
             });
             
             this.agentsListEl.appendChild(agentEl);
@@ -389,8 +466,15 @@ class SmallTalkWebApp {
     }
 
     updateStats() {
-        this.messageCountEl.textContent = this.messageCount;
-        this.agentSwitchesEl.textContent = this.agentSwitches;
+        if (this.messageCountEl) {
+            this.messageCountEl.textContent = this.messageCount;
+        }
+        if (this.agentSwitchesEl) {
+            this.agentSwitchesEl.textContent = this.agentSwitches;
+        }
+        if (this.plansExecutedEl && this.orchestrationEnabled) {
+            this.plansExecutedEl.textContent = this.plansExecuted;
+        }
     }
 
     clearChat() {
@@ -480,6 +564,235 @@ class SmallTalkWebApp {
 
     hideModal() {
         this.modalOverlay.classList.remove('show');
+    }
+    
+    // Orchestration-specific methods
+    handleOrchestrationStatus(data) {
+        this.orchestrationEnabled = data.enabled;
+        this.streamingEnabled = data.streamingEnabled;
+        
+        if (this.orchestrationEnabled) {
+            this.enableOrchestrationUI();
+            this.addSystemMessage('🎯 Interactive Orchestration enabled');
+        }
+    }
+    
+    enableOrchestrationUI() {
+        // Show orchestration panel
+        if (this.orchestrationPanel) {
+            this.orchestrationPanel.style.display = 'block';
+        }
+        
+        // Show orchestration tip
+        if (this.orchestrationTip) {
+            this.orchestrationTip.style.display = 'list-item';
+        }
+        
+        // Show orchestration features in help
+        if (this.orchestrationFeatures) {
+            this.orchestrationFeatures.style.display = 'list-item';
+        }
+        
+        // Show orchestration commands in help
+        if (this.orchestrationCommands) {
+            this.orchestrationCommands.style.display = 'list-item';
+        }
+        
+        // Show plan stats
+        if (this.planStatsContainer) {
+            this.planStatsContainer.style.display = 'block';
+        }
+        
+        // Request current plans
+        this.socket.emit('get_plans');
+    }
+    
+    handlePlanEvent(event) {
+        const { type, planId, data } = event;
+        
+        switch (type) {
+            case 'plan_created':
+                this.addSystemMessage(`📋 Plan created: ${planId.slice(0, 8)}...`);
+                this.socket.emit('get_plans'); // Refresh plans list
+                break;
+                
+            case 'step_started':
+                if (data?.step) {
+                    this.addSystemMessage(`▶️  ${data.step.agentName}: ${data.step.action.slice(0, 60)}...`);
+                }
+                break;
+                
+            case 'step_completed':
+                this.addSystemMessage('✅ Step completed');
+                break;
+                
+            case 'plan_completed':
+                this.addSystemMessage(`🎉 Plan completed: ${planId.slice(0, 8)}...`);
+                this.plansExecuted++;
+                this.updateStats();
+                this.socket.emit('get_plans'); // Refresh plans list
+                break;
+                
+            case 'user_interrupted':
+                this.addSystemMessage('⚡ Plan paused for user input', 'warning');
+                break;
+                
+            case 'plan_paused':
+                this.addSystemMessage(`⏸️  Plan paused: ${planId.slice(0, 8)}...`, 'warning');
+                break;
+        }
+    }
+    
+    handleStreamingResponse(response) {
+        const { messageId, chunk, isComplete, agentName } = response;
+        
+        if (!this.currentStreamingMessage || this.currentStreamingMessage.id !== messageId) {
+            // Start new streaming message
+            this.currentStreamingMessage = {
+                id: messageId,
+                role: 'assistant',
+                content: chunk,
+                timestamp: new Date(),
+                agentName: agentName,
+                streaming: true
+            };
+            this.addMessage(this.currentStreamingMessage, true);
+        } else {
+            // Update existing streaming message
+            this.currentStreamingMessage.content += chunk;
+            this.updateStreamingMessage(messageId, this.currentStreamingMessage.content);
+        }
+        
+        if (isComplete) {
+            this.finalizeStreamingMessage(messageId);
+            this.currentStreamingMessage = null;
+        }
+    }
+    
+    updateStreamingMessage(messageId, content) {
+        const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageEl) {
+            const contentEl = messageEl.querySelector('.message-content');
+            if (contentEl) {
+                contentEl.innerHTML = this.formatMessage(content);
+                this.highlightCode(contentEl);
+            }
+        }
+    }
+    
+    finalizeStreamingMessage(messageId) {
+        const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageEl) {
+            messageEl.classList.remove('streaming');
+        }
+    }
+    
+    handleNotification(notification) {
+        const { type, message } = notification;
+        this.addSystemMessage(message, type);
+    }
+    
+    updatePlansList(plans) {
+        this.activePlans = plans;
+        
+        if (!this.plansList) return;
+        
+        if (plans.length === 0) {
+            this.plansList.innerHTML = '<div class="no-plans">No active plans</div>';
+            if (this.planControls) {
+                this.planControls.style.display = 'none';
+            }
+            return;
+        }
+        
+        this.plansList.innerHTML = '';
+        
+        plans.forEach(plan => {
+            const planEl = document.createElement('div');
+            planEl.className = `plan-item ${plan.status}`;
+            planEl.innerHTML = `
+                <div class="plan-id">${plan.id.slice(0, 8)}...</div>
+                <div class="plan-intent">${plan.userIntent}</div>
+                <div class="plan-status">${plan.status}</div>
+                <div class="plan-progress">${plan.currentStepIndex}/${plan.steps.length}</div>
+            `;
+            
+            planEl.addEventListener('click', () => {
+                this.selectPlan(plan.id);
+            });
+            
+            this.plansList.appendChild(planEl);
+        });
+        
+        // Show plan controls if there are active plans
+        if (this.planControls) {
+            this.planControls.style.display = 'block';
+        }
+    }
+    
+    selectPlan(planId) {
+        // Highlight selected plan
+        const planItems = this.plansList.querySelectorAll('.plan-item');
+        planItems.forEach(item => item.classList.remove('selected'));
+        
+        const selectedItem = Array.from(planItems).find(item => 
+            item.querySelector('.plan-id').textContent === planId.slice(0, 8) + '...'
+        );
+        
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+            this.selectedPlanId = planId;
+        }
+    }
+    
+    pauseActivePlan() {
+        if (this.selectedPlanId) {
+            this.socket.emit('pause_plan', { planId: this.selectedPlanId });
+        }
+    }
+    
+    resumeActivePlan() {
+        if (this.selectedPlanId) {
+            this.socket.emit('resume_plan', { 
+                planId: this.selectedPlanId,
+                sessionId: 'web-session',
+                userId: 'web-user'
+            });
+        }
+    }
+    
+    interruptActivePlan() {
+        const message = prompt('Enter your interruption message:');
+        if (message && this.selectedPlanId) {
+            this.socket.emit('interrupt_plan', {
+                planId: this.selectedPlanId,
+                message: message
+            });
+        }
+    }
+    
+    handlePlanStatusChange(status, planId) {
+        const message = status === 'paused' ? 
+            `⏸️  Plan ${planId.slice(0, 8)}... paused` :
+            `▶️  Plan ${planId.slice(0, 8)}... resumed`;
+        
+        this.addSystemMessage(message, status === 'paused' ? 'warning' : 'info');
+        
+        // Refresh plans list
+        this.socket.emit('get_plans');
+    }
+    
+    // Override updateStats to include plan stats
+    updateStats() {
+        if (this.messageCountEl) {
+            this.messageCountEl.textContent = this.messageCount;
+        }
+        if (this.agentSwitchesEl) {
+            this.agentSwitchesEl.textContent = this.agentSwitches;
+        }
+        if (this.plansExecutedEl) {
+            this.plansExecutedEl.textContent = this.plansExecuted;
+        }
     }
 }
 

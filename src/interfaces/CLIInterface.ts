@@ -18,6 +18,9 @@ export interface CLIConfig extends InterfaceConfig {
 export class CLIInterface extends BaseInterface {
   private rl?: readline.Interface;
   private cliConfig: CLIConfig;
+  private customCommandHandlers: Map<string, (args: string[], rawCommand: string) => Promise<void> | void> = new Map();
+  private streamingBuffer: Map<string, string> = new Map();
+  private isProcessingInput = false;
 
   constructor(config: CLIConfig = { type: 'cli' }) {
     super(config);
@@ -34,6 +37,10 @@ export class CLIInterface extends BaseInterface {
       showAgentNames: true,
       ...config
     };
+    
+    // Enable streaming and interruption support
+    this.supportStreaming = true;
+    this.supportInterruption = true;
   }
 
   public async start(): Promise<void> {
@@ -132,24 +139,25 @@ export class CLIInterface extends BaseInterface {
 
   private async handleCommand(command: string): Promise<void> {
     const [cmd, ...args] = command.slice(1).split(' ');
-
+    // Custom command handlers take precedence
+    const customHandler = this.customCommandHandlers.get(cmd.toLowerCase());
+    if (customHandler) {
+      await customHandler(args, command);
+      return;
+    }
     switch (cmd.toLowerCase()) {
       case 'help':
         this.displayHelp();
         break;
-
       case 'quit':
       case 'exit':
         console.log(chalk.yellow('Goodbye!'));
         await this.stop();
         process.exit(0);
-        break;
-
       case 'clear':
         console.clear();
         this.displayWelcome();
         break;
-
       case 'agent':
         if (args.length === 0) {
           console.log(chalk.yellow('Usage: /agent <agent_name>'));
@@ -159,19 +167,24 @@ export class CLIInterface extends BaseInterface {
           console.log(chalk.green(response));
         }
         break;
-
       case 'config':
         this.displayConfig();
         break;
-
       case 'timestamp':
         this.cliConfig.showTimestamps = !this.cliConfig.showTimestamps;
         console.log(chalk.yellow(`Timestamps ${this.cliConfig.showTimestamps ? 'enabled' : 'disabled'}`));
         break;
-
       default:
         console.log(chalk.red(`Unknown command: ${cmd}. Type /help for available commands.`));
     }
+  }
+
+  /**
+   * Register a custom command for the CLI interface (e.g., `/stats`).
+   * Handler receives (args: string[], rawCommand: string)
+   */
+  public registerCommand(cmd: string, handler: (args: string[], command: string) => Promise<void> | void) {
+    this.customCommandHandlers.set(cmd.toLowerCase(), handler);
   }
 
   private displayMessage(message: ChatMessage): void {
@@ -275,5 +288,59 @@ export class CLIInterface extends BaseInterface {
 
   public setColors(colors: Partial<CLIConfig['colors']>): void {
     this.cliConfig.colors = { ...this.cliConfig.colors, ...colors };
+  }
+
+  // Enhanced streaming support
+  public onStreamingMessage(callback: (chunk: string, messageId: string) => void): void {
+    this.streamingMessageHandler = callback;
+    
+    // Override the default behavior to handle real-time streaming
+    this.streamingMessageHandler = (chunk: string, messageId: string) => {
+      if (!this.streamingBuffer.has(messageId)) {
+        this.streamingBuffer.set(messageId, '');
+        // Start new streaming message
+        process.stdout.write(chalk.green.bold('Assistant: '));
+      }
+      
+      // Append chunk to buffer and display
+      const currentBuffer = this.streamingBuffer.get(messageId) || '';
+      this.streamingBuffer.set(messageId, currentBuffer + chunk);
+      process.stdout.write(chunk);
+      
+      // Check if message is complete (this would need to be indicated by the streaming system)
+      // For now, we'll end the line after a reasonable pause
+      if (callback) {
+        callback(chunk, messageId);
+      }
+    };
+  }
+
+  public onInterruption(callback: (message: string) => void): void {
+    this.interruptionHandler = callback;
+  }
+
+  public displayPlanEvent(event: any): void {
+    switch (event.type) {
+      case 'plan_created':
+        console.log(chalk.blue(`\n📋 New plan created: ${event.planId.slice(0, 8)}...`));
+        break;
+      case 'step_started':
+        if (event.data?.step) {
+          console.log(chalk.blue(`▶️  Step: ${event.data.step.agentName} - ${event.data.step.action.slice(0, 50)}...`));
+        }
+        break;
+      case 'step_completed':
+        console.log(chalk.green(`✅ Step completed`));
+        break;
+      case 'plan_completed':
+        console.log(chalk.green(`\n🎉 Plan completed: ${event.planId.slice(0, 8)}...`));
+        break;
+      case 'user_interrupted':
+        console.log(chalk.yellow(`\n⚡ Plan paused for user input`));
+        break;
+      case 'plan_paused':
+        console.log(chalk.yellow(`\n⏸️  Plan paused: ${event.planId.slice(0, 8)}...`));
+        break;
+    }
   }
 }

@@ -1,3 +1,10 @@
+import { SmallTalk } from './core/SmallTalk.js';
+import { AgentFactory } from './agents/AgentFactory.js';
+import { Agent } from './agents/Agent.js';
+import { CLIInterface } from './interfaces/CLIInterface.js';
+import { WebInterface } from './interfaces/WebInterface.js';
+import { WebChatInterface } from './interfaces/WebChatInterface.js';
+
 // Core framework exports
 export { SmallTalk } from './core/SmallTalk.js';
 export { Chat } from './core/Chat.js';
@@ -8,6 +15,8 @@ export { MCPClient } from './core/MCPClient.js';
 export { Agent } from './agents/Agent.js';
 export { AgentFactory } from './agents/AgentFactory.js';
 export { PromptTemplateManager } from './agents/PromptTemplateManager.js';
+export { OrchestratorAgent } from './agents/OrchestratorAgent.js';
+export { InteractiveOrchestratorAgent } from './agents/InteractiveOrchestratorAgent.js';
 
 // Interface exports
 export { BaseInterface } from './interfaces/BaseInterface.js';
@@ -30,6 +39,10 @@ export type {
   ToolDefinition,
   PromptTemplate,
   MemoryConfig,
+  HistoryManagementConfig,
+  ExecutionPlan,
+  PlanStep,
+  InterruptionContext,
   FlowContext,
   BaseInterface as IBaseInterface,
   Agent as IAgent,
@@ -38,11 +51,13 @@ export type {
 
 // Re-export commonly used interfaces for convenience
 export type { CLIConfig } from './interfaces/CLIInterface.js';
+export type { WebChatConfig, PlanEvent, StreamingResponse, NotificationMessage } from './interfaces/WebChatInterface.js';
 export type { LLMOptions, LLMResponse } from './utils/TokenJSWrapper.js';
 export type { MCPResource, MCPPrompt } from './core/MCPClient.js';
+export type { AgentCapabilities, HandoffDecision } from './agents/OrchestratorAgent.js';
 
 // Framework version
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 
 // Quick start helper function
 export function createSmallTalk(config?: {
@@ -103,10 +118,14 @@ export function createWebChat(config?: {
   port?: number;
   host?: string;
   cors?: any;
+  orchestrationMode?: boolean;
+  enableChatUI?: boolean;
 }): WebChatInterface {
   return new WebChatInterface({
     type: 'web',
     enableStaticFiles: true,
+    enableChatUI: true,
+    orchestrationMode: false,
     ...config
   });
 }

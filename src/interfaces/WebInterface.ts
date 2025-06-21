@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { BaseInterface } from './BaseInterface.js';
 import { ChatMessage, InterfaceConfig } from '../types/index.js';
+import { Agent } from '../agents/Agent.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,10 +23,10 @@ export interface WebConfig extends InterfaceConfig {
 }
 
 export class WebInterface extends BaseInterface {
-  private app: express.Application;
-  private server: any;
-  private io: SocketIOServer;
-  private webConfig: WebConfig;
+  protected app: express.Application;
+  protected server: any;
+  protected io: SocketIOServer;
+  protected webConfig: WebConfig;
 
   constructor(config: WebConfig = { type: 'web' }) {
     super(config);
@@ -53,7 +54,7 @@ export class WebInterface extends BaseInterface {
     this.setupSocketIO();
   }
 
-  private setupExpress(): void {
+  protected setupExpress(): void {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
 
@@ -96,8 +97,15 @@ export class WebInterface extends BaseInterface {
     });
 
     this.app.get('/api/agents', (req, res) => {
-      // This would be populated by the framework
-      res.json({ agents: [] });
+      const agents = this.framework?.getAgents() || [];
+      const agentData = agents.map((agent: Agent) => ({
+        id: agent.name,
+        name: agent.name,
+        personality: agent.getPersonality?.()?.description || 'AI Assistant',
+        expertise: agent.config.tools || [],
+        isActive: true
+      }));
+      res.json({ agents: agentData });
     });
 
     // Chat API endpoint for direct HTTP calls (alternative to WebSocket)
@@ -125,7 +133,7 @@ export class WebInterface extends BaseInterface {
     });
   }
 
-  private setupSocketIO(): void {
+  protected setupSocketIO(): void {
     this.io.on('connection', (socket) => {
       this.log('info', `Client connected: ${socket.id}`);
       
@@ -133,6 +141,9 @@ export class WebInterface extends BaseInterface {
         message: 'Connected to SmallTalk',
         timestamp: new Date().toISOString()
       });
+
+      // Send agent list to newly connected client
+      this.broadcastAgentList();
 
       socket.on('chat_message', async (data) => {
         try {
@@ -236,8 +247,19 @@ export class WebInterface extends BaseInterface {
     this.io.emit('new_message', message);
   }
 
-  public broadcastAgentList(agents: string[]): void {
-    this.io.emit('agents_updated', { agents });
+  public broadcastAgentList(): void {
+    if (!this.framework) return;
+    
+    const agents = this.framework.getAgents();
+    const agentData = agents.map((agent: Agent) => ({
+      id: agent.name,
+      name: agent.name,
+      personality: agent.getPersonality?.()?.description || 'AI Assistant',
+      expertise: agent.config.tools || [],
+      isActive: true
+    }));
+    
+    this.io.emit('agents_updated', { agents: agentData });
   }
 
   public getConnectedClients(): number {

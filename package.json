@@ -1,6 +1,6 @@
 {
   "name": "smalltalk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A complete TypeScript framework for building LLM applications with agent support and MCP integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,12 +25,12 @@
     "examples": "echo '🎯 Available examples:\n⭐ npm run example:orchestrator - Intelligent agent orchestration demo (NEW!)\n• npm run example:basic - Basic CLI chat with agents\n• npm run example:language - Language learning tutor (CLI)\n• npm run example:medical - Medical education tutor (CLI)\n• npm run example:business - Multi-agent business meeting (CLI)\n• npm run example:web-api - Express API server (no HTML)\n• npm run example:web-chat - Full web chat interface with HTML UI'"
   },
   "keywords": [
-    "llm", 
-    "ai", 
-    "chat", 
-    "agents", 
-    "mcp", 
-    "framework", 
+    "llm",
+    "ai",
+    "chat",
+    "agents",
+    "mcp",
+    "framework",
     "typescript",
     "token.js",
     "pocketflow"
@@ -38,30 +38,33 @@
   "author": "SmallTalk Framework",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.2",
-    "nanoid": "^5.0.1",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
-    "yaml": "^2.3.2",
-    "lodash": "^4.17.21"
+    "express": "^4.18.2",
+    "lodash": "^4.17.21",
+    "nanoid": "^5.0.1",
+    "socket.io": "^4.8.1",
+    "token.js": "^0.7.1",
+    "yaml": "^2.3.2"
   },
   "optionalDependencies": {
-    "token.js": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.8.0",
     "@types/express": "^4.17.18",
-    "@types/ws": "^8.5.6",
-    "@types/lodash": "^4.14.199",
     "@types/jest": "^29.5.5",
+    "@types/lodash": "^4.14.199",
+    "@types/node": "^20.8.0",
+    "@types/ws": "^8.5.6",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
+    "autoprefixer": "^10.4.21",
     "eslint": "^8.50.0",
     "jest": "^29.7.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.10",
     "ts-jest": "^29.1.1",
-    "tsx": "^3.14.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.2.2"
   },
   "files": [
@@ -82,7 +85,7 @@
       "types": "./dist/interfaces/WebInterface.d.ts"
     },
     "./cli": {
-      "import": "./dist/interfaces/CLIInterface.js", 
+      "import": "./dist/interfaces/CLIInterface.js",
       "types": "./dist/interfaces/CLIInterface.d.ts"
     },
     "./agents": {
