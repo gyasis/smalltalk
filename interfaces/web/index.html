@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmallTalk - AI Chat Framework</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="chat-container">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <div class="header-left">
+                        <h1>🗣️ SmallTalk</h1>
+                        <span class="subtitle">AI Chat Framework</span>
+                    </div>
+                    <div class="header-right">
+                        <div class="connection-status" id="connectionStatus">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Connecting...</span>
+                        </div>
+                        <button class="clear-button" id="clearChat">Clear Chat</button>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="messages-container" id="messagesContainer">
+                    <div class="welcome-message">
+                        <div class="welcome-content">
+                            <h2>Welcome to SmallTalk! 👋</h2>
+                            <p>Start chatting with AI agents by typing a message below.</p>
+                            <div class="quick-tips">
+                                <h3>Quick Tips:</h3>
+                                <ul>
+                                    <li>Switch agents with: <code>/agent &lt;name&gt;</code></li>
+                                    <li>Get help with: <code>/help</code></li>
+                                    <li>Clear chat with: <code>/clear</code></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <div class="input-wrapper">
+                        <textarea 
+                            id="messageInput" 
+                            placeholder="Type your message here... (Press Enter to send, Shift+Enter for new line)"
+                            rows="1"
+                            maxlength="2000"
+                        ></textarea>
+                        <button id="sendButton" class="send-button" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="input-footer">
+                        <span class="char-count" id="charCount">0/2000</span>
+                        <span class="typing-indicator" id="typingIndicator"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="chat-sidebar">
+            <!-- Agent Selection -->
+            <div class="sidebar-section">
+                <h3>🤖 Active Agent</h3>
+                <div class="current-agent" id="currentAgent">
+                    <div class="agent-avatar">🤖</div>
+                    <div class="agent-info">
+                        <div class="agent-name">No agent selected</div>
+                        <div class="agent-status">Waiting...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Agents -->
+            <div class="sidebar-section">
+                <h3>👥 Available Agents</h3>
+                <div class="agents-list" id="agentsList">
+                    <div class="loading-agents">Loading agents...</div>
+                </div>
+            </div>
+
+            <!-- Chat Controls -->
+            <div class="sidebar-section">
+                <h3>⚙️ Controls</h3>
+                <div class="controls-grid">
+                    <button class="control-button" id="exportChat">
+                        📄 Export Chat
+                    </button>
+                    <button class="control-button" id="importChat">
+                        📁 Import Chat
+                    </button>
+                    <button class="control-button" id="settingsBtn">
+                        ⚙️ Settings
+                    </button>
+                    <button class="control-button" id="helpBtn">
+                        ❓ Help
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="sidebar-section">
+                <h3>📊 Session Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="messageCount">0</div>
+                        <div class="stat-label">Messages</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="agentSwitches">0</div>
+                        <div class="stat-label">Agent Switches</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="helpModal">
+            <div class="modal-header">
+                <h2>❓ SmallTalk Help</h2>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <h3>Commands</h3>
+                <ul>
+                    <li><code>/agent &lt;name&gt;</code> - Switch to a specific agent</li>
+                    <li><code>/help</code> - Show this help message</li>
+                    <li><code>/clear</code> - Clear the chat history</li>
+                    <li><code>/agents</code> - List available agents</li>
+                </ul>
+                
+                <h3>Features</h3>
+                <ul>
+                    <li><strong>Multi-Agent Support:</strong> Switch between specialized AI agents</li>
+                    <li><strong>Real-time Chat:</strong> Instant messaging with WebSocket connection</li>
+                    <li><strong>Markdown Support:</strong> Rich text formatting in messages</li>
+                    <li><strong>Code Highlighting:</strong> Syntax highlighting for code blocks</li>
+                    <li><strong>Export/Import:</strong> Save and load chat sessions</li>
+                </ul>
+
+                <h3>Keyboard Shortcuts</h3>
+                <ul>
+                    <li><kbd>Enter</kbd> - Send message</li>
+                    <li><kbd>Shift + Enter</kbd> - New line</li>
+                    <li><kbd>Ctrl + K</kbd> - Clear chat</li>
+                    <li><kbd>Ctrl + /</kbd> - Show help</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
