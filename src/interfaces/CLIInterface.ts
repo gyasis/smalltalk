@@ -196,7 +196,7 @@ export class CLIInterface extends BaseInterface {
       ? chalk.magenta(`[${message.agentName}] `)
       : '';
 
-    let colorFn: chalk.Chalk;
+    let colorFn: typeof chalk;
     let prefix: string;
 
     switch (message.role) {

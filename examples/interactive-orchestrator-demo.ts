@@ -15,24 +15,22 @@ import { SmallTalk } from '../src/core/SmallTalk.js';
 import { Agent } from '../src/agents/Agent.js';
 import { CLIInterface } from '../src/interfaces/CLIInterface.js';
 import { AgentCapabilities } from '../src/agents/OrchestratorAgent.js';
+import { PlaygroundConfig } from '../src/types/index.js';
 
 // Create specialized agents with different capabilities
 const dataAnalystAgent = new Agent({
   name: 'DataAnalyst',
-  personality: 'I am a data analysis expert. I excel at examining data patterns, creating insights, and providing statistical analysis. I approach problems methodically and provide evidence-based conclusions.',
-  expertise: ['data analysis', 'statistics', 'visualization', 'research']
+  personality: 'I am a data analysis expert. I excel at examining data patterns, creating insights, and providing statistical analysis. I approach problems methodically and provide evidence-based conclusions.'
 });
 
 const creativeCopywriterAgent = new Agent({
   name: 'CreativeCopywriter', 
-  personality: 'I am a creative copywriter and content strategist. I specialize in crafting compelling narratives, engaging marketing copy, and creative content that resonates with audiences.',
-  expertise: ['writing', 'marketing', 'content creation', 'storytelling', 'branding']
+  personality: 'I am a creative copywriter and content strategist. I specialize in crafting compelling narratives, engaging marketing copy, and creative content that resonates with audiences.'
 });
 
 const techConsultantAgent = new Agent({
   name: 'TechConsultant',
-  personality: 'I am a technical consultant with expertise in software architecture, system design, and technology strategy. I help solve complex technical challenges and provide strategic technology guidance.',
-  expertise: ['software architecture', 'system design', 'technology strategy', 'problem solving', 'consulting']
+  personality: 'I am a technical consultant with expertise in software architecture, system design, and technology strategy. I help solve complex technical challenges and provide strategic technology guidance.'
 });
 
 // Define agent capabilities for the orchestrator
@@ -205,8 +203,62 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
-// Run the demo
-runInteractiveOrchestratorDemo().catch(error => {
-  console.error('Demo failed to start:', error);
-  process.exit(1);
-});
+// Playground configuration for `smalltalk playground` command
+export const playgroundConfig: PlaygroundConfig = {
+  port: 3126,
+  host: 'localhost',
+  title: 'Interactive Orchestrator Demo',
+  description: 'Advanced orchestrator with dynamic planning, streaming responses, and user intervention',
+  orchestrationMode: true,
+  enableChatUI: true
+};
+
+// Async initialization function for playground mode
+async function initializeApp() {
+  const smalltalk = new SmallTalk({
+    llmProvider: 'openai',
+    model: 'gpt-4o',
+    temperature: 0.7,
+    debugMode: true,
+    orchestration: true,
+    orchestrationConfig: {
+      maxAutoResponses: 5,
+      enableInterruption: true,
+      streamResponses: true,
+      contextSensitivity: 0.8,
+      switchThreshold: 0.7
+    },
+    historyManagement: {
+      strategy: 'hybrid',
+      maxMessages: 30,
+      slidingWindowSize: 15,
+      summaryInterval: 8,
+      contextSize: 4000
+    }
+  });
+
+  // Add agents with their capabilities
+  smalltalk.addAgent(dataAnalystAgent, dataAnalystCapabilities);
+  smalltalk.addAgent(creativeCopywriterAgent, creativeCopywriterCapabilities);
+  smalltalk.addAgent(techConsultantAgent, techConsultantCapabilities);
+
+  return smalltalk;
+}
+
+export default initializeApp;
+
+// ES module execution detection with playground mode support
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // In playground mode, the framework handles initialization
+      console.log('🎮 Interactive Orchestrator Demo - Playground Mode');
+    } else {
+      // CLI mode - run the original demo function
+      await runInteractiveOrchestratorDemo();
+    }
+  })().catch(error => {
+    console.error('Demo failed to start:', error);
+    process.exit(1);
+  });
+}

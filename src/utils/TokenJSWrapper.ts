@@ -52,7 +52,7 @@ export class TokenJSWrapper {
         messages: formattedMessages,
         temperature,
         max_tokens: maxTokens,
-        stream: options.stream || false,
+        stream: options.stream as any,
         tools: options.tools,
         tool_choice: options.tools ? 'auto' : undefined,
       });
@@ -303,7 +303,7 @@ export class TokenJSWrapper {
     }
   ): void {
     try {
-      this.tokenjs.extendModelList(provider, modelName, featureSupport);
+      this.tokenjs.extendModelList(provider as any, modelName, featureSupport);
       console.log(`[TokenJSWrapper] Extended model: ${provider}:${modelName}`);
     } catch (error) {
       console.error(`[TokenJSWrapper] Failed to extend model ${provider}:${modelName}:`, error);
@@ -380,7 +380,7 @@ export class TokenJSWrapper {
                 url: img.url,
                 detail: img.detail || 'auto'
               }
-            });
+            } as any);
           } else if (img.base64) {
             content.push({
               type: 'image_url',
@@ -388,7 +388,7 @@ export class TokenJSWrapper {
                 url: `data:image/jpeg;base64,${img.base64}`,
                 detail: img.detail || 'auto'
               }
-            });
+            } as any);
           }
         });
 

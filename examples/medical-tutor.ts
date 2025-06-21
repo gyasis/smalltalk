@@ -8,7 +8,7 @@ import {
 
 // Playground configuration for web mode
 export const playgroundConfig: PlaygroundConfig = {
-  port: 4004,
+  port: 3126,
   host: 'localhost',
   title: '🏥 Medical Education Tutor',
   description: 'Comprehensive medical education environment with specialized medical experts',
@@ -320,48 +320,86 @@ Learning style: ${study_style}
   return app;
 }
 
-// Create the app instance
-const app = await createMedicalTutorApp();
+async function initializeApp() {
+  const app = await createMedicalTutorApp();
+  // Add CLI interface
+  const cli = new CLIInterface();
+  app.addInterface(cli);
+  return app;
+}
 
-// Add CLI interface for direct execution
-const cli = new CLIInterface();
-app.addInterface(cli);
+export default initializeApp;
 
-// Export for CLI usage
-export default app;
-
-// Backward compatibility - run if executed directly
-if (require.main === module) {
-  console.log('🏥 Medical Tutor - SmallTalk Framework');
-  console.log('=====================================');
-  console.log('✅ Medical Education Environment Ready!');
-  console.log('🎯 Intelligent orchestration enabled - the right expert will be selected for your questions');
-  
-  console.log('\n👨‍⚕️ Available Medical Experts:');
-  console.log('• DrMedTeach - Clinical instructor for case-based learning');
-  console.log('• AnatomyPro - Anatomy expert with detailed explanations');
-  console.log('• PharmGuide - Pharmacology specialist for drug information');
-  console.log('• DiagnosticDoc - Diagnostic reasoning and clinical thinking');
-  console.log('• ExamMentor - Exam preparation and practice questions');
-  
-  console.log('\n💡 Try asking:');
-  console.log('• "Create a cardiology case study for a 3rd year student"');
-  console.log('• "Explain the anatomy of the heart with clinical correlations"');
-  console.log('• "Tell me about metformin pharmacology"');
-  console.log('• "How do I approach a patient with chest pain?"');
-  console.log('• "Give me a USMLE-style question about diabetes"');
-  
-  console.log('\n🎯 Features:');
-  console.log('• Intelligent expert selection based on your medical questions');
-  console.log('• Use /agent <name> to speak with specific medical experts');
-  console.log('• Specialized medical tools for drug lookup and diagnosis');
-  console.log('• Evidence-based medical education content');
-  
-  console.log('\n⚠️  DISCLAIMER: All content is for educational purposes only.');
-  console.log('This is not medical advice. Always verify information with current clinical resources.\n');
-  
-  app.start().catch((error) => {
-    console.error('❌ Failed to start medical tutor:', error);
-    process.exit(1);
-  });
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // Playground mode - set up web interface
+      const app = await createMedicalTutorApp();
+      
+      const { WebChatInterface } = await import('../src/index.js');
+      
+      // Dynamic port configuration
+      const port = process.env.SMALLTALK_PLAYGROUND_PORT 
+        ? parseInt(process.env.SMALLTALK_PLAYGROUND_PORT) 
+        : (playgroundConfig.port || 3126);
+      const host = process.env.SMALLTALK_PLAYGROUND_HOST || playgroundConfig.host || 'localhost';
+      
+      const webChat = new WebChatInterface({
+        port,
+        host,
+        cors: { origin: '*' },
+        orchestrationMode: playgroundConfig.orchestrationMode || false,
+        enableChatUI: playgroundConfig.enableChatUI !== false,
+        title: playgroundConfig.title,
+        description: playgroundConfig.description,
+        type: 'web'
+      });
+      
+      app.addInterface(webChat);
+      
+      console.log('✅ Starting SmallTalk Playground...');
+      console.log(`🌐 Web Interface: http://${host}:${port}`);
+      if (playgroundConfig.title) console.log(`📋 Title: ${playgroundConfig.title}`);
+      if (playgroundConfig.description) console.log(`📝 Description: ${playgroundConfig.description}`);
+      console.log();
+      console.log('Press Ctrl+C to stop the server');
+      
+      await app.start();
+    } else {
+      // CLI mode
+      const app = await initializeApp();
+      console.log('🏥 Medical Tutor - SmallTalk Framework');
+      console.log('=====================================');
+      console.log('✅ Medical Education Environment Ready!');
+      console.log('🎯 Intelligent orchestration enabled - the right expert will be selected for your questions');
+      
+      console.log('\n👨‍⚕️ Available Medical Experts:');
+      console.log('• DrMedTeach - Clinical instructor for case-based learning');
+      console.log('• AnatomyPro - Anatomy expert with detailed explanations');
+      console.log('• PharmGuide - Pharmacology specialist for drug information');
+      console.log('• DiagnosticDoc - Diagnostic reasoning and clinical thinking');
+      console.log('• ExamMentor - Exam preparation and practice questions');
+      
+      console.log('\n💡 Try asking:');
+      console.log('• "Create a cardiology case study for a 3rd year student"');
+      console.log('• "Explain the anatomy of the heart with clinical correlations"');
+      console.log('• "Tell me about metformin pharmacology"');
+      console.log('• "How do I approach a patient with chest pain?"');
+      console.log('• "Give me a USMLE-style question about diabetes"');
+      
+      console.log('\n🎯 Features:');
+      console.log('• Intelligent expert selection based on your medical questions');
+      console.log('• Use /agent <name> to speak with specific medical experts');
+      console.log('• Specialized medical tools for drug lookup and diagnosis');
+      console.log('• Evidence-based medical education content');
+      
+      console.log('\n⚠️  DISCLAIMER: All content is for educational purposes only.');
+      console.log('This is not medical advice. Always verify information with current clinical resources.\n');
+      
+      app.start().catch((error) => {
+        console.error('❌ Failed to start medical tutor:', error);
+        process.exit(1);
+      });
+    }
+  })();
 }

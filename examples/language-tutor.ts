@@ -11,11 +11,11 @@ import {
 
 // NEW: Playground configuration for `smalltalk playground` command
 export const playgroundConfig: PlaygroundConfig = {
-  port: 4001,
+  port: 3126,
   host: 'localhost',
   title: '🌍 Language Learning Tutor',
-  description: 'Multi-agent language learning environment with Professor, ChatBuddy, GrammarGuru, and SpeechCoach',
-  orchestrationMode: false,
+  description: 'Advanced multi-agent language learning with intelligent tutor orchestration',
+  orchestrationMode: true,  // ⭐ ENABLED for intelligent routing
   enableChatUI: true
 };
 
@@ -23,7 +23,112 @@ async function createLanguageTutorApp() {
   const app = new SmallTalk({
     llmProvider: 'openai',
     model: 'gpt-4o',
-    debugMode: true
+    debugMode: true,
+    orchestration: true,  // ⭐ ENABLE intelligent agent orchestration
+    
+    // Advanced orchestration configuration for language learning
+    orchestrationConfig: {
+      strategy: 'educational',
+      contextSensitivity: 0.9,        // High context awareness for learning progression
+      switchThreshold: 0.7,           // Moderate threshold for agent switching
+      maxSwitchesPerConversation: 8,  // Allow more switches for educational flow
+      learningEnabled: true,          // Learn from user interactions
+      
+      // Language learning specific weights
+      scoringWeights: {
+        expertiseMatch: 0.35,         // Strong emphasis on expertise
+        complexityMatch: 0.25,        // Consider learning level
+        conversationContext: 0.25,    // Track learning progression  
+        userProgress: 0.15            // Factor in user's learning journey
+      },
+
+      // Custom rules for language learning scenarios
+      customRules: [
+        {
+          name: 'beginner_guidance',
+          condition: (context, message) => {
+            const beginnerKeywords = ['new', 'beginner', 'start', 'basic', 'first time'];
+            return beginnerKeywords.some(keyword => 
+              message.toLowerCase().includes(keyword)
+            );
+          },
+          targetAgent: 'Professor',
+          priority: 18,
+          reason: 'Beginner needs structured guidance'
+        },
+        {
+          name: 'conversation_practice',
+          condition: (context, message) => {
+            const conversationKeywords = ['practice', 'talk', 'chat', 'conversation', 'speak'];
+            return conversationKeywords.some(keyword => 
+              message.toLowerCase().includes(keyword)
+            ) && !message.toLowerCase().includes('grammar');
+          },
+          targetAgent: 'ChatBuddy',
+          priority: 16,
+          reason: 'User wants conversation practice'
+        },
+        {
+          name: 'grammar_questions',
+          condition: (context, message) => {
+            const grammarKeywords = ['grammar', 'rule', 'tense', 'conjugate', 'syntax', 'why'];
+            return grammarKeywords.some(keyword => 
+              message.toLowerCase().includes(keyword)
+            );
+          },
+          targetAgent: 'GrammarGuru',
+          priority: 17,
+          reason: 'Grammar-specific question detected'
+        },
+        {
+          name: 'pronunciation_help',
+          condition: (context, message) => {
+            const pronunciationKeywords = ['pronounce', 'sound', 'accent', 'speak', 'pronunciation'];
+            return pronunciationKeywords.some(keyword => 
+              message.toLowerCase().includes(keyword)
+            );
+          },
+          targetAgent: 'SpeechCoach',
+          priority: 16,
+          reason: 'Pronunciation assistance needed'
+        }
+      ],
+
+      // Educational handoff triggers
+      handoffTriggers: {
+        learningProgression: {
+          enabled: true,
+          description: 'Switch when user progresses to different learning phase',
+          condition: (context) => {
+            // Detect when user moves from basic to advanced concepts
+            const recentMessages = context.messages.slice(-3);
+            return recentMessages.some(msg => 
+              msg.content.includes('advanced') || msg.content.includes('complex')
+            );
+          },
+          targetAgent: 'Professor'
+        },
+        practiceToTheory: {
+          enabled: true,
+          description: 'Switch from practice to theory when user asks why',
+          condition: (context) => {
+            return context.lastMessage.includes('why') || 
+                   context.lastMessage.includes('explain');
+          },
+          targetAgent: 'GrammarGuru'
+        },
+        theoryToPractice: {
+          enabled: true,
+          description: 'Switch from theory to practice after explanation',
+          condition: (context) => {
+            const lastAgent = context.lastAgentName;
+            const messageCount = context.messages.length;
+            return lastAgent === 'GrammarGuru' && messageCount % 3 === 0;
+          },
+          targetAgent: 'ChatBuddy'
+        }
+      }
+    }
   });
 
   // Create specialized language learning agents
@@ -186,18 +291,78 @@ Keep it fun and authentic!`,
   pronunciationCoach.addTool(pronunciationTool);
   grammarExpert.addTool(vocabularyTool);
 
-  // Add agents to framework
-  app.addAgent(mainTutor);
-  app.addAgent(conversationPartner);
-  app.addAgent(grammarExpert);
-  app.addAgent(pronunciationCoach);
+  // Add agents to framework with capabilities for intelligent orchestration
+  app.addAgent(mainTutor, {
+    expertise: ['language teaching', 'lesson planning', 'structured learning', 'beginner guidance'],
+    complexity: 'intermediate',
+    taskTypes: ['teaching', 'lesson_planning', 'structured_learning'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'leading',
+    personalityTraits: ['patient', 'encouraging', 'structured', 'adaptive'],
+    tools: ['lesson_plan', 'vocabulary_quiz', 'track_progress'],
+    preferredScenarios: ['beginner_questions', 'lesson_structure', 'learning_objectives']
+  });
+
+  app.addAgent(conversationPartner, {
+    expertise: ['conversation practice', 'natural dialogue', 'language immersion', 'speaking practice'],
+    complexity: 'basic',
+    taskTypes: ['conversation', 'practice', 'speaking'],
+    contextAwareness: 0.8,
+    collaborationStyle: 'collaborative',
+    personalityTraits: ['friendly', 'encouraging', 'natural', 'patient'],
+    tools: ['conversation_starter', 'gentle_correction'],
+    preferredScenarios: ['conversation_practice', 'speaking_help', 'natural_dialogue']
+  });
+
+  app.addAgent(grammarExpert, {
+    expertise: ['grammar rules', 'syntax explanation', 'language structure', 'detailed analysis'],
+    complexity: 'advanced',
+    taskTypes: ['grammar', 'explanation', 'analysis'],
+    contextAwareness: 0.9,
+    collaborationStyle: 'supportive',
+    personalityTraits: ['precise', 'detailed', 'analytical', 'clear'],
+    tools: ['grammar_explanation', 'vocabulary_quiz'],
+    preferredScenarios: ['grammar_questions', 'rule_explanations', 'syntax_help']
+  });
+
+  app.addAgent(pronunciationCoach, {
+    expertise: ['pronunciation', 'phonetics', 'accent training', 'speaking skills'],
+    complexity: 'intermediate',
+    taskTypes: ['pronunciation', 'speaking', 'accent_training'],
+    contextAwareness: 0.7,
+    collaborationStyle: 'supportive',
+    personalityTraits: ['enthusiastic', 'encouraging', 'precise', 'motivational'],
+    tools: ['phonetic_guide'],
+    preferredScenarios: ['pronunciation_help', 'accent_training', 'speaking_practice']
+  });
 
   return app;
 }
 
-// NEW: Create and export the configured app for `smalltalk` commands
-const app = createLanguageTutorApp();
-export default app;
+// NEW: Async initialization function for CLI usage
+async function initializeApp() {
+  const app = await createLanguageTutorApp();
+  
+  // Create custom CLI interface for language learning
+  const cli = new CLIInterface({
+    type: 'cli',
+    prompt: '🌍 ',
+    colors: {
+      user: '#3498db',
+      assistant: '#2ecc71',
+      system: '#f39c12',
+      error: '#e74c3c'
+    },
+    showTimestamps: false,
+    showAgentNames: true
+  });
+
+  app.addInterface(cli);
+  return app;
+}
+
+// Export factory function for CLI usage  
+export default initializeApp;
 
 async function main(tutorApp: SmallTalk) {
   console.log('🌍 Language Tutor - SmallTalk Framework');
@@ -238,32 +403,71 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// LEGACY: Backward compatibility for `npx tsx` execution
-if (require.main === module) {
-  async function runLegacyMode() {
-    const tutorApp = await createLanguageTutorApp();
-    
-    // Create custom CLI interface for language learning
-    const cli = new CLIInterface({
-      type: 'cli',
-      prompt: '🌍 ',
-      colors: {
-        user: '#3498db',
-        assistant: '#2ecc71',
-        system: '#f39c12',
-        error: '#e74c3c'
-      },
-      showTimestamps: false,
-      showAgentNames: true
-    });
+// Backward compatibility - run if executed directly (ES module compatible)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    // Check if we're in playground mode
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // Playground mode - set up web interface
+      const app = await createLanguageTutorApp();
+      
+      const { WebChatInterface } = await import('../src/index.js');
+      
+      // Dynamic port configuration - prioritize environment variables from CLI
+      const port = process.env.SMALLTALK_PLAYGROUND_PORT 
+        ? parseInt(process.env.SMALLTALK_PLAYGROUND_PORT) 
+        : (playgroundConfig.port || 3126);
+      const host = process.env.SMALLTALK_PLAYGROUND_HOST || playgroundConfig.host || 'localhost';
+      
+      const webChat = new WebChatInterface({
+        port,
+        host,
+        cors: { origin: '*' },
+        orchestrationMode: playgroundConfig.orchestrationMode || false,
+        enableChatUI: playgroundConfig.enableChatUI !== false,
+        title: playgroundConfig.title,
+        description: playgroundConfig.description,
+        type: 'web'
+      });
+      
+      app.addInterface(webChat);
+      
+      console.log('✅ Starting SmallTalk Playground...');
+      console.log(`🌐 Web Interface: http://${host}:${port}`);
+      if (playgroundConfig.title) console.log(`📋 Title: ${playgroundConfig.title}`);
+      if (playgroundConfig.description) console.log(`📝 Description: ${playgroundConfig.description}`);
+      console.log();
+      console.log('Press Ctrl+C to stop the server');
+      
+      await app.start();
+    } else {
+      // CLI mode - run legacy mode
+      async function runLegacyMode() {
+        const tutorApp = await createLanguageTutorApp();
+        
+        // Create custom CLI interface for language learning
+        const cli = new CLIInterface({
+          type: 'cli',
+          prompt: '🌍 ',
+          colors: {
+            user: '#3498db',
+            assistant: '#2ecc71',
+            system: '#f39c12',
+            error: '#e74c3c'
+          },
+          showTimestamps: false,
+          showAgentNames: true
+        });
 
-    tutorApp.addInterface(cli);
-    await main(tutorApp);
-  }
+        tutorApp.addInterface(cli);
+        await main(tutorApp);
+      }
 
-  // Run the language tutor
-  runLegacyMode().catch((error) => {
-    console.error('❌ Failed to start language tutor:', error);
-    process.exit(1);
-  });
+      // Run the language tutor
+      runLegacyMode().catch((error) => {
+        console.error('❌ Failed to start language tutor:', error);
+        process.exit(1);
+      });
+    }
+  })();
 }

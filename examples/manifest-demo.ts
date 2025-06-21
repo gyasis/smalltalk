@@ -1,4 +1,5 @@
 import { SmallTalk, CLIInterface } from '../src/index.js';
+import { PlaygroundConfig } from '../src/types/index.js';
 
 async function createManifestDemo() {
   // Example demonstrating the new manifest-based agent configuration
@@ -53,11 +54,32 @@ async function createManifestDemo() {
   return app;
 }
 
-// Create the app instance for CLI usage
-const manifestApp = await createManifestDemo();
-export default manifestApp;
+// Playground configuration for `smalltalk playground` command
+export const playgroundConfig: PlaygroundConfig = {
+  port: 3126,
+  host: 'localhost',
+  title: 'Advanced Manifest Demo',
+  description: 'Advanced demonstration of loading agents from manifest files with directory scanning',
+  orchestrationMode: true,
+  enableChatUI: true
+};
 
-// Backward compatibility - run if executed directly
-if (require.main === module) {
-  createManifestDemo().then(app => app.start()).catch(console.error);
+// Export the initialization function for playground mode
+export default createManifestDemo;
+
+// ES module execution detection with playground mode support
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // In playground mode, the framework handles initialization
+      console.log('🎮 Advanced Manifest Demo - Playground Mode');
+    } else {
+      // CLI mode - run the original demo logic
+      const app = await createManifestDemo();
+      await app.start();
+    }
+  })().catch(error => {
+    console.error('Demo failed to start:', error);
+    process.exit(1);
+  });
 }

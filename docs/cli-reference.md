@@ -78,10 +78,24 @@ smalltalk playground scripts/chatbot.js --host 0.0.0.0 --verbose
 ```
 
 **Options:**
-- `-p, --port <number>`: Web server port (overrides config)
+- `-p, --port <number>`: Web server port (overrides config) - **DYNAMIC CONFIGURATION**
 - `-h, --host <string>`: Web server host (default: localhost) 
 - `-v, --verbose`: Enable detailed logging
 - `--help`: Show command help
+
+**🔥 Dynamic Port Configuration (NEW):**
+The `--port` option now provides truly dynamic port configuration that overrides any file-based configuration:
+
+```bash
+# Override playground config port
+smalltalk playground examples/language-tutor.ts --port 5000
+
+# Works with any port number  
+smalltalk playground examples/orchestrator-demo.ts --port 8080
+
+# Perfect for development environments
+smalltalk playground examples/simple-test.ts --port 3005
+```
 
 **Example Output:**
 ```
@@ -159,13 +173,10 @@ export default app;
 
 ### **Playground Mode Requirements**
 
-For playground mode, you must also export a `playgroundConfig` object:
+For playground mode, you must also export a `playgroundConfig` object and follow the **universal pattern**:
 
 ```typescript
 import { SmallTalk, Agent, PlaygroundConfig } from 'smalltalk';
-
-// Create your SmallTalk app (same as above)
-const app = new SmallTalk({ /* ... */ });
 
 // REQUIRED: Playground configuration
 export const playgroundConfig: PlaygroundConfig = {
@@ -177,9 +188,98 @@ export const playgroundConfig: PlaygroundConfig = {
   enableChatUI: true
 };
 
-// REQUIRED: Export app for CLI commands
-export default app;
+// Create your app function
+async function createMyApp() {
+  const app = new SmallTalk({
+    llmProvider: 'openai',
+    model: 'gpt-4o'
+  });
+  
+  // Add your agents
+  const agent = new Agent({
+    name: 'Assistant',
+    personality: 'helpful and knowledgeable'
+  });
+  app.addAgent(agent);
+  
+  return app;
+}
+
+// REQUIRED: Async initialization function for CLI usage
+async function initializeApp() {
+  const app = await createMyApp();
+  
+  // Add CLI interface for direct execution
+  const cli = new CLIInterface();
+  app.addInterface(cli);
+  
+  return app;
+}
+
+// REQUIRED: Export factory function for CLI commands
+export default initializeApp;
+
+// REQUIRED: ES module execution detection with playground mode
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    // Check if we're in playground mode
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // Playground mode - set up web interface
+      const app = await createMyApp();
+      
+      const { WebChatInterface } = await import('../src/index.js');
+      
+      // Dynamic port configuration - prioritize environment variables from CLI
+      const port = process.env.SMALLTALK_PLAYGROUND_PORT 
+        ? parseInt(process.env.SMALLTALK_PLAYGROUND_PORT) 
+        : (playgroundConfig.port || 3000);
+      const host = process.env.SMALLTALK_PLAYGROUND_HOST || playgroundConfig.host || 'localhost';
+      
+      const webChat = new WebChatInterface({
+        port,
+        host,
+        cors: { origin: '*' },
+        orchestrationMode: playgroundConfig.orchestrationMode || false,
+        enableChatUI: playgroundConfig.enableChatUI !== false,
+        title: playgroundConfig.title,
+        description: playgroundConfig.description,
+        type: 'web'
+      });
+      
+      app.addInterface(webChat);
+      
+      console.log('✅ Starting SmallTalk Playground...');
+      console.log(`🌐 Web Interface: http://${host}:${port}`);
+      if (playgroundConfig.title) console.log(`📋 Title: ${playgroundConfig.title}`);
+      if (playgroundConfig.description) console.log(`📝 Description: ${playgroundConfig.description}`);
+      console.log();
+      console.log('Press Ctrl+C to stop the server');
+      
+      await app.start();
+    } else {
+      // CLI mode
+      const app = await initializeApp();
+      await app.start();
+    }
+  })();
+}
 ```
+
+### **🎯 Universal Pattern Requirements**
+
+For **ALL SmallTalk example files** to work with both CLI and playground modes, they must follow this standardized pattern:
+
+1. **✅ Export PlaygroundConfig**: `export const playgroundConfig: PlaygroundConfig = { ... }`
+2. **✅ Export Async Factory**: `export default initializeApp;` where `initializeApp` is an async function
+3. **✅ ES Module Detection**: `if (import.meta.url === \`file://${process.argv[1]}\`)`
+4. **✅ Playground Mode Detection**: `process.env.SMALLTALK_PLAYGROUND_MODE === 'true'`
+5. **✅ Dynamic Port Configuration**: Reading environment variables for port/host override
+
+**This pattern ensures:**
+- ✅ **CLI mode works**: `smalltalk examples/my-file.ts`
+- ✅ **Playground mode works**: `smalltalk playground examples/my-file.ts`
+- ✅ **Dynamic ports work**: `smalltalk playground examples/my-file.ts --port 5000`
+- ✅ **Backward compatibility**: Direct execution with `tsx` still works
 
 ### **Backward Compatibility**
 

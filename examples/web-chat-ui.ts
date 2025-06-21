@@ -9,6 +9,7 @@ import {
 } from '../src/index.js';
 import { InteractiveOrchestratorAgent } from '../src/agents/InteractiveOrchestratorAgent.js';
 import { AgentCapabilities } from '../src/agents/OrchestratorAgent.js';
+import { PlaygroundConfig } from '../src/types/index.js';
 
 async function main() {
   console.log('🌐 SmallTalk Web Chat UI with Interactive Orchestration');
@@ -45,10 +46,7 @@ async function main() {
   const helper = createAgent(
     'Helper', 
     'A friendly and helpful assistant who loves to chat and help with any questions. I excel at general conversation, providing information, and assisting with everyday tasks.',
-    { 
-      temperature: 0.8,
-      expertise: ['general assistance', 'conversation', 'information', 'support']
-    }
+    { temperature: 0.8 }
   );
 
   const coder = AgentFactory.createCodingAssistant(
@@ -64,19 +62,13 @@ async function main() {
   const analyst = createAgent(
     'DataAnalyst',
     'A data analysis expert who helps with statistics, visualization, and insights. I specialize in interpreting data, creating charts, and providing analytical insights.',
-    { 
-      temperature: 0.4,
-      expertise: ['statistics', 'data science', 'charts', 'analysis', 'visualization']
-    }
+    { temperature: 0.4 }
   );
 
   const consultant = createAgent(
     'TechConsultant',
     'A technical consultant specializing in system architecture, technology strategy, and engineering best practices. I help with technical decision-making and system design.',
-    {
-      temperature: 0.6,
-      expertise: ['system architecture', 'technology strategy', 'engineering', 'scalability', 'performance']
-    }
+    { temperature: 0.6 }
   );
 
   // Define agent capabilities for orchestration
@@ -150,7 +142,6 @@ async function main() {
     port,
     host: 'localhost',
     enableChatUI: true,
-    enableStaticFiles: true,
     orchestrationMode: useOrchestration
   });
 
@@ -269,8 +260,142 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Run the web chat server
-main().catch((error) => {
-  console.error('❌ Failed to start web chat server:', error);
-  process.exit(1);
-});
+// Playground configuration for `smalltalk playground` command
+export const playgroundConfig: PlaygroundConfig = {
+  port: 3126,
+  host: 'localhost',
+  title: 'Web Chat UI with Interactive Orchestration',
+  description: 'Full-featured web chat interface with multiple specialized agents and orchestration support',
+  orchestrationMode: true,
+  enableChatUI: true
+};
+
+// Async initialization function for playground mode
+async function initializeApp() {
+  const useOrchestration = true; // Default to orchestration in playground mode
+  const port = 3126; // Use playground config port
+
+  const app = new SmallTalk({
+    llmProvider: 'openai',
+    model: 'gpt-4o',
+    debugMode: true,
+    orchestration: useOrchestration,
+    orchestrationConfig: {
+      maxAutoResponses: 8,
+      enableInterruption: true,
+      streamResponses: true,
+      contextSensitivity: 0.8
+    },
+    historyManagement: {
+      strategy: 'hybrid',
+      maxMessages: 40,
+      slidingWindowSize: 20,
+      summaryInterval: 12
+    }
+  });
+
+  // Create and add agents
+  const helper = createAgent(
+    'Helper',
+    'A friendly and helpful assistant who loves to chat and help with any questions. I excel at general conversation, providing information, and assisting with everyday tasks.',
+    { temperature: 0.8 }
+  );
+
+  const coder = AgentFactory.createCodingAssistant(
+    'CodeBot',
+    ['javascript', 'typescript', 'python', 'react']
+  );
+
+  const writer = AgentFactory.createWritingAssistant(
+    'WriteBot',
+    'creative'
+  );
+
+  const analyst = createAgent(
+    'DataAnalyst',
+    'A data analysis expert who helps with statistics, visualization, and insights. I specialize in interpreting data, creating charts, and providing analytical insights.',
+    { temperature: 0.4 }
+  );
+
+  const consultant = createAgent(
+    'TechConsultant',
+    'A technical consultant specializing in system architecture, technology strategy, and engineering best practices. I help with technical decision-making and system design.',
+    { temperature: 0.6 }
+  );
+
+  // Define agent capabilities for orchestration
+  const agentCapabilities: Record<string, AgentCapabilities> = {
+    'Helper': {
+      expertise: ['general assistance', 'conversation', 'information', 'support'],
+      tools: [],
+      personalityTraits: ['friendly', 'helpful', 'patient', 'encouraging'],
+      taskTypes: ['conversation', 'assistance', 'information'],
+      complexity: 'basic',
+      contextAwareness: 0.7,
+      collaborationStyle: 'supportive'
+    },
+    'CodeBot': {
+      expertise: ['javascript', 'typescript', 'python', 'react', 'programming', 'debugging'],
+      tools: ['code_analysis', 'syntax_check', 'debugging'],
+      personalityTraits: ['technical', 'precise', 'helpful', 'detail-oriented'],
+      taskTypes: ['programming', 'debugging', 'code-review'],
+      complexity: 'advanced',
+      contextAwareness: 0.8,
+      collaborationStyle: 'collaborative'
+    },
+    'WriteBot': {
+      expertise: ['creative writing', 'content creation', 'storytelling', 'copywriting'],
+      tools: ['content_generation', 'style_analysis'],
+      personalityTraits: ['creative', 'imaginative', 'expressive', 'artistic'],
+      taskTypes: ['creative', 'writing', 'content'],
+      complexity: 'intermediate',
+      contextAwareness: 0.75,
+      collaborationStyle: 'collaborative'
+    },
+    'DataAnalyst': {
+      expertise: ['statistics', 'data science', 'charts', 'analysis', 'visualization'],
+      tools: ['data_analysis', 'statistical_tests', 'visualization'],
+      personalityTraits: ['analytical', 'methodical', 'precise', 'insightful'],
+      taskTypes: ['analysis', 'research', 'data'],
+      complexity: 'advanced',
+      contextAwareness: 0.9,
+      collaborationStyle: 'leading'
+    },
+    'TechConsultant': {
+      expertise: ['system architecture', 'technology strategy', 'engineering', 'scalability'],
+      tools: ['architecture_review', 'tech_assessment', 'performance_analysis'],
+      personalityTraits: ['strategic', 'experienced', 'decisive', 'forward-thinking'],
+      taskTypes: ['consultation', 'architecture', 'strategy'],
+      complexity: 'expert',
+      contextAwareness: 0.95,
+      collaborationStyle: 'leading'
+    }
+  };
+
+  // Add agents with capabilities for orchestration
+  app.addAgent(helper, agentCapabilities['Helper']);
+  app.addAgent(coder, agentCapabilities['CodeBot']);
+  app.addAgent(writer, agentCapabilities['WriteBot']);
+  app.addAgent(analyst, agentCapabilities['DataAnalyst']);
+  app.addAgent(consultant, agentCapabilities['TechConsultant']);
+
+  return app;
+}
+
+export default initializeApp;
+
+// ES module execution detection with playground mode support
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // In playground mode, the framework handles initialization
+      console.log('🎮 Web Chat UI - Playground Mode');
+    } else {
+      // CLI mode - run the original main function
+      await main();
+    }
+  })().catch((error) => {
+    console.error('❌ Failed to start web chat server:', error);
+    process.exit(1);
+  });
+}

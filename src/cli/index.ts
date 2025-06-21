@@ -26,7 +26,6 @@ program
 program
   .argument('<file>', 'Path to the SmallTalk script file')
   .option('-v, --verbose', 'Enable verbose output')
-  .option('-p, --port <number>', 'Port number (for CLI mode with web interface)', '3000')
   .action(async (file: string, options: any) => {
     try {
       console.log(chalk.blue('🎯 SmallTalk CLI Mode'));

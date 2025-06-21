@@ -559,12 +559,12 @@ export default app;
 ```
 
 #### **For Playground Mode:**
-Additionally export a `playgroundConfig`:
+Additionally export a `playgroundConfig` and follow the **universal pattern**:
 
 ```typescript
 // All the above, plus:
 
-// NEW: Playground configuration
+// REQUIRED: Playground configuration
 export const playgroundConfig = {
   port: 4001,
   host: 'localhost',
@@ -573,7 +573,34 @@ export const playgroundConfig = {
   orchestrationMode: true,
   enableChatUI: true
 };
+
+// REQUIRED: Universal pattern for ES modules with playground support
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // Playground mode setup with dynamic port configuration
+    } else {
+      // CLI mode setup
+    }
+  })();
+}
 ```
+
+**🔥 Dynamic Port Configuration (NEW):**
+Override any playground configuration with command-line arguments:
+
+```bash
+# Use default port from config
+smalltalk playground examples/language-tutor.ts
+
+# Override with any port (dynamic!)
+smalltalk playground examples/language-tutor.ts --port 5000
+smalltalk playground examples/orchestrator-demo.ts --port 8080
+```
+
+**📋 All Examples Updated:** All 11 SmallTalk examples now support the universal pattern with unique ports and dynamic configuration.
+
+**📖 Complete Guide:** See [Playground Configuration Guide](./docs/playground-configuration.md) for the complete template and requirements.
 
 ### **🔄 Backward Compatibility**
 All existing scripts continue to work with `npx tsx`:
@@ -716,8 +743,14 @@ const app = new SmallTalk({
 
 ### **🏁 Getting Started**
 - [Installation & Setup](./docs/getting-started/installation.md)
+- [**🖥️ SmallTalk CLI Reference**](./docs/cli-reference.md) ⭐ **v0.2.1**
+- [**🌐 Playground Configuration Guide**](./docs/playground-configuration.md) ⭐ **Essential**
 - [Your First Agent](./docs/getting-started/first-agent.md)
 - [Configuration Guide](./docs/getting-started/configuration.md)
+
+### **🤖 For AI Agents & LLMs**
+- [**🤖 LLM Integration Guide**](./docs/llm-integration-guide.md) ⭐ **NEW - Complete Technical Reference**
+- [**🚀 LLM Quick Reference**](./docs/llm-quick-reference.md) ⭐ **NEW - Quick Start for AI Agents**
 
 ### **📘 Guides**
 - [**🎯 Intelligent Orchestration**](./docs/guides/orchestration.md) - **Core feature guide**

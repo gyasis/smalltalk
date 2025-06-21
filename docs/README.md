@@ -127,7 +127,8 @@ app.start(); // Your AI code reviewer is live!
 
 ### 🏁 **Getting Started**
 - [Installation & Setup](./getting-started/installation.md)
-- [**🖥️ SmallTalk CLI Reference**](./cli-reference.md) ⭐ **NEW v0.2.1**
+- [**🖥️ SmallTalk CLI Reference**](./cli-reference.md) ⭐ **v0.2.1**
+- [**🌐 Playground Configuration Guide**](./playground-configuration.md) ⭐ **NEW - Essential**
 - [Your First Agent](./getting-started/first-agent.md)
 - [Configuration Guide](./getting-started/configuration.md)
 
@@ -149,6 +150,7 @@ app.start(); // Your AI code reviewer is live!
 - [Customer Support Bot](./examples/customer-support.md)
 
 ### 📑 **API Reference**
+- [**🤖 LLM Integration Guide**](./llm-integration-guide.md) ⭐ **NEW - For AI Agents**
 - [SmallTalk Class](./api-reference/smalltalk.md)
 - [Agent Class](./api-reference/agent.md)
 - [**🎯 Orchestrator API**](./api-reference/orchestrator.md) ⭐ **New**

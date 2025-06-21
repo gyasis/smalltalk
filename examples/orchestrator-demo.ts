@@ -20,7 +20,7 @@ import { PlaygroundConfig } from '../src/types/index.js';
 
 // Playground configuration for web mode
 export const playgroundConfig: PlaygroundConfig = {
-  port: 4002,
+  port: 3126,
   host: 'localhost',
   title: '🎯 SmallTalk Orchestrator Demo',
   description: 'Advanced multi-agent orchestration with intelligent routing and plan execution',
@@ -367,47 +367,88 @@ async function createOrchestratorDemo() {
   return app;
 }
 
-// Create the app instance
-const app = await createOrchestratorDemo();
+async function initializeApp() {
+  const app = await createOrchestratorDemo();
+  return app;
+}
 
-// Export for CLI usage
-export default app;
+export default initializeApp;
 
-// Backward compatibility - run if executed directly
-if (require.main === module) {
-  console.log('🎯 SmallTalk Orchestrator Demo');
-  console.log('=====================================');
-  console.log('✅ Orchestrator is ready! Intelligent agent routing enabled.');
-  
-  console.log('\n🤖 Available Agents:');
-  app.listAgents().forEach(agentName => {
-    const agent = app.getAgent(agentName);
-    console.log(`   • ${agentName}: ${agent?.config.expertise?.join(', ')}`);
-  });
+// Backward compatibility - run if executed directly (ES module compatible)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    // Check if we're in playground mode
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // Playground mode - set up web interface
+      const app = await createOrchestratorDemo();
+      
+      const { WebChatInterface } = await import('../src/index.js');
+      
+      // Dynamic port configuration - prioritize environment variables from CLI
+      const port = process.env.SMALLTALK_PLAYGROUND_PORT 
+        ? parseInt(process.env.SMALLTALK_PLAYGROUND_PORT) 
+        : (playgroundConfig.port || 3126);
+      const host = process.env.SMALLTALK_PLAYGROUND_HOST || playgroundConfig.host || 'localhost';
+      
+      const webChat = new WebChatInterface({
+        port,
+        host,
+        cors: { origin: '*' },
+        orchestrationMode: playgroundConfig.orchestrationMode || false,
+        enableChatUI: playgroundConfig.enableChatUI !== false,
+        title: playgroundConfig.title,
+        description: playgroundConfig.description,
+        type: 'web'
+      });
+      
+      app.addInterface(webChat);
+      
+      console.log('✅ Starting SmallTalk Playground...');
+      console.log(`🌐 Web Interface: http://${host}:${port}`);
+      if (playgroundConfig.title) console.log(`📋 Title: ${playgroundConfig.title}`);
+      if (playgroundConfig.description) console.log(`📝 Description: ${playgroundConfig.description}`);
+      console.log();
+      console.log('Press Ctrl+C to stop the server');
+      
+      await app.start();
+    } else {
+      // CLI mode
+      const app = await initializeApp();
+      console.log('🎯 SmallTalk Orchestrator Demo');
+      console.log('=====================================');
+      console.log('✅ Orchestrator is ready! Intelligent agent routing enabled.');
+      
+      console.log('\n🤖 Available Agents:');
+      app.listAgents().forEach(agentName => {
+        const agent = app.getAgent(agentName);
+        console.log(`   • ${agentName}: ${agent?.config.expertise?.join(', ')}`);
+      });
 
-  console.log('\n🎯 Orchestration Features:');
-  console.log('   • Automatic agent selection based on user intent');
-  console.log('   • Smart handoffs when expertise changes');
-  console.log('   • Multi-step plan generation and execution');
-  console.log('   • Real-time response streaming');
-  console.log('   • User intervention during plan execution');
+      console.log('\n🎯 Orchestration Features:');
+      console.log('   • Automatic agent selection based on user intent');
+      console.log('   • Smart handoffs when expertise changes');
+      console.log('   • Multi-step plan generation and execution');
+      console.log('   • Real-time response streaming');
+      console.log('   • User intervention during plan execution');
 
-  console.log('\n📝 Try these example messages to see orchestration:');
-  console.log('   • "I\'m a beginner, how do I start programming?"');
-  console.log('   • "Explain the theory behind quick sort algorithm"');
-  console.log('   • "I have a bug in my JavaScript code"');
-  console.log('   • "What architecture should I use for a large-scale system?"');
-  console.log('   • "Please introduce yourselves" (creates multi-step plan)');
+      console.log('\n📝 Try these example messages to see orchestration:');
+      console.log('   • "I\'m a beginner, how do I start programming?"');
+      console.log('   • "Explain the theory behind quick sort algorithm"');
+      console.log('   • "I have a bug in my JavaScript code"');
+      console.log('   • "What architecture should I use for a large-scale system?"');
+      console.log('   • "Please introduce yourselves" (creates multi-step plan)');
 
-  console.log('\n🎛️ Enhanced Commands:');
-  console.log('   • /stats - Show orchestration statistics');
-  console.log('   • /plans - List active execution plans');
-  console.log('   • /pause <plan_id> - Pause plan execution');
-  console.log('   • /resume <plan_id> - Resume paused plan');
-  console.log('   • /status - Show system status');
+      console.log('\n🎛️ Enhanced Commands:');
+      console.log('   • /stats - Show orchestration statistics');
+      console.log('   • /plans - List active execution plans');
+      console.log('   • /pause <plan_id> - Pause plan execution');
+      console.log('   • /resume <plan_id> - Resume paused plan');
+      console.log('   • /status - Show system status');
 
-  console.log('\n🚀 Start chatting to see intelligent agent routing in action!');
-  console.log('Type your message and watch the orchestrator choose the best agent for you!\n');
-  
-  app.start().catch(console.error);
+      console.log('\n🚀 Start chatting to see intelligent agent routing in action!');
+      console.log('Type your message and watch the orchestrator choose the best agent for you!\n');
+      
+      app.start().catch(console.error);
+    }
+  })();
 }

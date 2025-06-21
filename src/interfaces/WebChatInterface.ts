@@ -65,7 +65,7 @@ export class WebChatInterface extends WebInterface {
   protected setupExpress(): void {
     super.setupExpress();
     
-    if (this.chatConfig.orchestrationMode) {
+    if (this.chatConfig?.orchestrationMode) {
       this.setupOrchestrationEndpoints();
     }
   }
@@ -108,7 +108,7 @@ export class WebChatInterface extends WebInterface {
       try {
         const stats = this.framework?.getStats?.();
         res.json({ 
-          orchestrationEnabled: this.chatConfig.orchestrationMode,
+          orchestrationEnabled: this.chatConfig?.orchestrationMode,
           stats: stats?.orchestrationStats || {},
           memoryStats: stats?.memoryStats || {},
           streamingEnabled: this.streamingEnabled
@@ -122,19 +122,19 @@ export class WebChatInterface extends WebInterface {
   public async start(): Promise<void> {
     await super.start();
     
-    if (this.chatConfig.enableChatUI) {
-      const mode = this.chatConfig.orchestrationMode ? 'with Interactive Orchestration' : 'Simple Mode';
-      this.log('info', `Web Chat UI available at http://${this.chatConfig.host}:${this.chatConfig.port}`);
+    if (this.chatConfig?.enableChatUI) {
+      const mode = this.chatConfig?.orchestrationMode ? 'with Interactive Orchestration' : 'Simple Mode';
+      this.log('info', `Web Chat UI available at http://${this.chatConfig?.host}:${this.chatConfig?.port}`);
       this.log('info', `Full HTML chat interface ${mode}`);
       
-      if (this.chatConfig.orchestrationMode) {
+      if (this.chatConfig?.orchestrationMode) {
         this.log('info', 'Enhanced features: Plan execution, streaming, interruption support');
       }
     }
   }
 
   public getUIUrl(): string {
-    return `http://${this.chatConfig.host}:${this.chatConfig.port}`;
+    return `http://${this.chatConfig?.host || 'localhost'}:${this.chatConfig?.port || 3000}`;
   }
 
   // Enhanced methods for orchestration
@@ -159,7 +159,7 @@ export class WebChatInterface extends WebInterface {
   }
 
   public isOrchestrationEnabled(): boolean {
-    return this.chatConfig.orchestrationMode || false;
+    return this.chatConfig?.orchestrationMode || false;
   }
 
   // Override sendMessage to support streaming
@@ -204,11 +204,11 @@ export class WebChatInterface extends WebInterface {
     super.setupSocketIO();
     
     // Add orchestration-specific socket handlers
-    if (this.chatConfig.orchestrationMode) {
+    if (this.chatConfig?.orchestrationMode) {
       this.io.on('connection', (socket) => {
         // Send orchestration status to new clients
         socket.emit('orchestration_status', {
-          enabled: this.chatConfig.orchestrationMode,
+          enabled: this.chatConfig?.orchestrationMode,
           streamingEnabled: this.streamingEnabled,
           timestamp: new Date().toISOString()
         });

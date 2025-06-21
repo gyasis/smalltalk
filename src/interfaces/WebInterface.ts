@@ -109,12 +109,13 @@ export class WebInterface extends BaseInterface {
     });
 
     // Chat API endpoint for direct HTTP calls (alternative to WebSocket)
-    this.app.post('/api/chat', async (req, res) => {
+    this.app.post('/api/chat', async (req, res): Promise<void> => {
       try {
         const { message, sessionId } = req.body;
         
         if (!message) {
-          return res.status(400).json({ error: 'Message is required' });
+          res.status(400).json({ error: 'Message is required' });
+          return;
         }
 
         const response = await this.handleIncomingMessage(message);

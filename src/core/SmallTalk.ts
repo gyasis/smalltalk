@@ -5,19 +5,18 @@ import { join, extname } from 'path';
 import {
   SmallTalkConfig,
   SmallTalkFramework,
-  Agent,
   BaseInterface,
   MCPServerConfig,
   ChatSession,
   ChatMessage,
   FlowContext,
-  AgentManifest,
-  AgentCapabilities
+  AgentManifest
 } from '../types/index.js';
+import { Agent } from '../agents/Agent.js';
 import { Chat } from './Chat.js';
 import { Memory } from './Memory.js';
 import { MCPClient } from './MCPClient.js';
-import { OrchestratorAgent, HandoffDecision } from '../agents/OrchestratorAgent.js';
+import { OrchestratorAgent, HandoffDecision, AgentCapabilities } from '../agents/OrchestratorAgent.js';
 import { InteractiveOrchestratorAgent, PlanExecutionEvent, StreamingResponse } from '../agents/InteractiveOrchestratorAgent.js';
 import { ManifestParser } from '../utils/ManifestParser.js';
 import { Agent as AgentClass } from '../agents/Agent.js';
@@ -185,7 +184,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
       const agent = new AgentClass(manifest.config);
       
       // Add agent with capabilities if provided
-      this.addAgent(agent, manifest.capabilities);
+      this.addAgent(agent, manifest.capabilities as AgentCapabilities);
       
       this.emit('agent_loaded_from_file', { 
         filePath, 
@@ -318,7 +317,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     }
 
     // Make MCP tools available to all agents
-    const tools = this.mcpClient.getAvailableTools();
+    const tools = await this.mcpClient.getAvailableTools();
     for (const agent of this.agents.values()) {
       for (const tool of tools) {
         agent.addTool(tool);
@@ -530,7 +529,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
       session,
       message: userMessage,
       agent,
-      tools: this.mcpClient?.getAvailableTools() || [],
+      tools: this.mcpClient ? await this.mcpClient.getAvailableTools() : [],
       config: this.config
     };
 
@@ -679,8 +678,25 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private inferAgentCapabilities(agent: Agent): AgentCapabilities {
     const config = agent.config;
     
-    // Extract expertise from agent properties
-    const expertise = config.expertise || [];
+    // Extract expertise from agent properties (inferred from personality and name)
+    const expertise: string[] = [];
+    
+    // Infer expertise from agent name and personality
+    const name = config.name.toLowerCase();
+    if (name.includes('code') || name.includes('dev')) {
+      expertise.push('programming', 'development');
+    }
+    if (name.includes('helper') || name.includes('assist')) {
+      expertise.push('general assistance');
+    }
+    if (name.includes('writer') || name.includes('creative')) {
+      expertise.push('writing', 'content creation');
+    }
+    
+    // If no expertise inferred, provide general assistance
+    if (expertise.length === 0) {
+      expertise.push('general assistance');
+    }
     
     // Infer task types from personality and expertise
     const taskTypes: string[] = [];
@@ -718,7 +734,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     }
 
     // Get tool names
-    const tools = config.tools?.map(tool => tool.name) || [];
+    const tools = config.tools || [];
 
     return {
       expertise,
@@ -745,8 +761,8 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private handleStreamingResponse(response: StreamingResponse): void {
     // Broadcast streaming response to all interfaces that support it
     this.interfaces.forEach(iface => {
-      if (iface.onStreamingMessage) {
-        iface.onStreamingMessage(response.chunk, response.messageId);
+      if ((iface as any).handleStreamingResponse) {
+        (iface as any).handleStreamingResponse(response.chunk, response.messageId);
       }
     });
     

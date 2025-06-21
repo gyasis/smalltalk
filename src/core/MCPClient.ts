@@ -4,11 +4,17 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import {
   ListToolsRequest,
+  ListToolsResultSchema,
   CallToolRequest,
+  CallToolResultSchema,
   ListResourcesRequest,
+  ListResourcesResultSchema,
   ReadResourceRequest,
+  ReadResourceResultSchema,
   ListPromptsRequest,
-  GetPromptRequest
+  ListPromptsResultSchema,
+  GetPromptRequest,
+  GetPromptResultSchema
 } from '@modelcontextprotocol/sdk/types.js';
 import {
   MCPServerConfig,
@@ -141,7 +147,7 @@ export class MCPClient extends EventEmitter {
           params: {}
         };
 
-        const response = await client.request(request);
+        const response = await client.request(request, ListToolsResultSchema);
         
         if (response.tools) {
           for (const tool of response.tools) {
@@ -183,7 +189,7 @@ export class MCPClient extends EventEmitter {
         }
       };
 
-      const response = await client.request(request);
+      const response = await client.request(request, CallToolResultSchema);
       
       this.emit('tool_executed', {
         serverName,
@@ -209,7 +215,7 @@ export class MCPClient extends EventEmitter {
           params: {}
         };
 
-        const response = await client.request(request);
+        const response = await client.request(request, ListResourcesResultSchema);
         
         if (response.resources) {
           for (const resource of response.resources) {
@@ -238,13 +244,13 @@ export class MCPClient extends EventEmitter {
           params: { uri }
         };
 
-        const response = await client.request(request);
+        const response = await client.request(request, ReadResourceResultSchema);
         
         if (response.contents && response.contents.length > 0) {
           const content = response.contents[0];
           if (content.text) {
             this.emit('resource_read', { serverName, uri, content: content.text });
-            return content.text;
+            return content.text as string;
           } else if (content.blob) {
             // Handle binary content
             this.emit('resource_read', { serverName, uri, content: 'Binary content' });
@@ -270,14 +276,14 @@ export class MCPClient extends EventEmitter {
           params: {}
         };
 
-        const response = await client.request(request);
+        const response = await client.request(request, ListPromptsResultSchema);
         
         if (response.prompts) {
           for (const prompt of response.prompts) {
             allPrompts.push({
               name: `${serverName}:${prompt.name}`,
               description: prompt.description,
-              arguments: prompt.arguments
+              arguments: prompt.arguments as any
             });
           }
         }
@@ -308,7 +314,7 @@ export class MCPClient extends EventEmitter {
         }
       };
 
-      const response = await client.request(request);
+      const response = await client.request(request, GetPromptResultSchema);
       
       if (response.messages && response.messages.length > 0) {
         const message = response.messages[0];
@@ -362,7 +368,7 @@ export class MCPClient extends EventEmitter {
         params: {}
       };
       
-      await client.request(request);
+      await client.request(request, ListToolsResultSchema);
       return true;
     } catch (error) {
       console.error(`[MCPClient] Connection test failed for ${serverName}:`, error);

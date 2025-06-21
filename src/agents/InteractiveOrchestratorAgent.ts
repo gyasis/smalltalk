@@ -206,8 +206,8 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
 
     try {
       while (plan.currentStepIndex < plan.steps.length) {
-        // Check for interruption
-        if (plan.status === 'paused') {
+        // Check for interruption (status can change during execution)
+        if ((plan.status as string) === 'paused') {
           this.emit('plan_paused', {
             type: 'plan_paused',
             planId,
@@ -274,7 +274,7 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
     });
 
     try {
-      const agent = this.agentRegistry.get(step.agentName)?.agent;
+      const agent = (this as any).agentRegistry.get(step.agentName)?.agent;
       if (!agent) {
         throw new Error(`Agent ${step.agentName} not found`);
       }
@@ -502,7 +502,7 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
     );
 
     // Also consider if multiple agents are available
-    const agentCount = this.agentRegistry.size;
+    const agentCount = (this as any).agentRegistry.size;
     
     return hasComplexityIndicator && agentCount > 1;
   }

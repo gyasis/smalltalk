@@ -7,7 +7,7 @@ import {
 
 // Playground configuration for web mode (API-only, no chat UI)
 export const playgroundConfig: PlaygroundConfig = {
-  port: 3001,
+  port: 3126,
   host: 'localhost',
   title: '🌐 SmallTalk Web API',
   description: 'RESTful API server with WebSocket support for agent interactions',
@@ -48,7 +48,7 @@ async function createWebAPIServer() {
 
   // Create API-only web interface (no HTML frontend)
   const webAPI = new WebInterface({
-    port: 3000,
+    port: 3126,
     host: 'localhost'
   });
 
@@ -68,31 +68,70 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Create the app instance
-const app = await createWebAPIServer();
+async function initializeApp() {
+  const app = await createWebAPIServer();
+  return app;
+}
 
-// Export for CLI usage
-export default app;
+export default initializeApp;
 
-// Backward compatibility - run if executed directly
-if (require.main === module) {
-  console.log('🌐 SmallTalk Web API Server');
-  console.log('============================');
-  console.log('✅ API server ready!');
-  console.log('Available agents:', app.listAgents().join(', '));
-  
-  console.log('\n🔌 WebSocket Connection:');
-  console.log('   Connect to ws://localhost:3000 for real-time chat');
-  
-  console.log('\n📝 WebSocket Events:');
-  console.log('• Emit: "chat_message" with {message: "your message"}');
-  console.log('• Listen: "message_response" for AI responses');
-  console.log('• Listen: "welcome" for connection confirmation');
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // Playground mode - set up web interface
+      const app = await createWebAPIServer();
+      
+      const { WebChatInterface } = await import('../src/index.js');
+      
+      // Dynamic port configuration
+      const port = process.env.SMALLTALK_PLAYGROUND_PORT 
+        ? parseInt(process.env.SMALLTALK_PLAYGROUND_PORT) 
+        : (playgroundConfig.port || 3126);
+      const host = process.env.SMALLTALK_PLAYGROUND_HOST || playgroundConfig.host || 'localhost';
+      
+      const webChat = new WebChatInterface({
+        port,
+        host,
+        cors: { origin: '*' },
+        orchestrationMode: playgroundConfig.orchestrationMode || false,
+        enableChatUI: playgroundConfig.enableChatUI !== false,
+        title: playgroundConfig.title,
+        description: playgroundConfig.description,
+        type: 'web'
+      });
+      
+      app.addInterface(webChat);
+      
+      console.log('✅ Starting SmallTalk Playground...');
+      console.log(`🌐 Web Interface: http://${host}:${port}`);
+      if (playgroundConfig.title) console.log(`📋 Title: ${playgroundConfig.title}`);
+      if (playgroundConfig.description) console.log(`📝 Description: ${playgroundConfig.description}`);
+      console.log();
+      console.log('Press Ctrl+C to stop the server');
+      
+      await app.start();
+    } else {
+      // CLI mode
+      const app = await initializeApp();
+      console.log('🌐 SmallTalk Web API Server');
+      console.log('============================');
+      console.log('✅ API server ready!');
+      console.log('Available agents:', app.listAgents().join(', '));
+      
+      console.log('\n🔌 WebSocket Connection:');
+      console.log('   Connect to ws://localhost:3000 for real-time chat');
+      
+      console.log('\n📝 WebSocket Events:');
+      console.log('• Emit: "chat_message" with {message: "your message"}');
+      console.log('• Listen: "message_response" for AI responses');
+      console.log('• Listen: "welcome" for connection confirmation');
 
-  console.log('\n🛑 Press Ctrl+C to stop the server\n');
-  
-  app.start().catch((error) => {
-    console.error('❌ Failed to start API server:', error);
-    process.exit(1);
-  });
+      console.log('\n🛑 Press Ctrl+C to stop the server\n');
+      
+      app.start().catch((error) => {
+        console.error('❌ Failed to start API server:', error);
+        process.exit(1);
+      });
+    }
+  })();
 }

@@ -1,5 +1,6 @@
-import { resolve } from 'path';
+import { resolve, extname } from 'path';
 import { pathToFileURL } from 'url';
+import { spawn } from 'child_process';
 import chalk from 'chalk';
 import { SmallTalk } from '../core/SmallTalk.js';
 import { CLIInterface } from '../interfaces/CLIInterface.js';
@@ -16,6 +17,13 @@ export async function executeScript(filePath: string, options: ExecutionOptions)
   
   if (options.verbose) {
     console.log(chalk.gray(`Resolving path: ${resolvedPath}`));
+  }
+
+  // Check if it's a TypeScript file
+  const ext = extname(resolvedPath);
+  if (ext === '.ts') {
+    // For TypeScript files, delegate to tsx
+    return executeWithTsx(resolvedPath, options);
   }
 
   try {
@@ -122,4 +130,40 @@ function hasBeenConfigured(app: SmallTalk): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Execute TypeScript files using tsx
+ */
+async function executeWithTsx(filePath: string, options: ExecutionOptions): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (options.verbose) {
+      console.log(chalk.gray(`Executing TypeScript file with tsx: ${filePath}`));
+    }
+
+    const child = spawn('npx', ['tsx', filePath], {
+      stdio: 'inherit',
+      shell: process.platform === 'win32'
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Process exited with code ${code}`));
+      }
+    });
+
+    child.on('error', (error) => {
+      if (error.message.includes('ENOENT')) {
+        reject(new Error(
+          `tsx not found. Please ensure tsx is installed:\n` +
+          `  npm install -g tsx\n` +
+          `Or run directly: npx tsx ${filePath}`
+        ));
+      } else {
+        reject(error);
+      }
+    });
+  });
 }

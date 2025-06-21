@@ -1,5 +1,6 @@
-import { resolve } from 'path';
+import { resolve, extname } from 'path';
 import { pathToFileURL } from 'url';
+import { spawn } from 'child_process';
 import chalk from 'chalk';
 import { SmallTalk } from '../core/SmallTalk.js';
 import { WebChatInterface } from '../interfaces/WebChatInterface.js';
@@ -17,6 +18,13 @@ export async function executePlayground(filePath: string, options: PlaygroundOpt
   
   if (options.verbose) {
     console.log(chalk.gray(`Resolving path: ${resolvedPath}`));
+  }
+
+  // Check if it's a TypeScript file
+  const ext = extname(resolvedPath);
+  if (ext === '.ts') {
+    // For TypeScript files, delegate to tsx
+    return executePlaygroundWithTsx(resolvedPath, options);
   }
 
   try {
@@ -70,7 +78,7 @@ export async function executePlayground(filePath: string, options: PlaygroundOpt
 
     // Merge configuration (CLI options override config file)
     const finalConfig = {
-      port: parseInt(options.port || config.port?.toString() || '3000'),
+      port: parseInt(options.port || config.port?.toString() || '3126'),
       host: options.host || config.host || 'localhost',
       orchestrationMode: config.orchestrationMode || false,
       enableChatUI: config.enableChatUI !== false, // default to true
@@ -195,4 +203,49 @@ export function validatePlaygroundConfig(config: any): PlaygroundConfig {
   }
 
   return validated;
+}
+
+/**
+ * Execute TypeScript files using tsx for playground mode
+ */
+async function executePlaygroundWithTsx(filePath: string, options: PlaygroundOptions): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (options.verbose) {
+      console.log(chalk.gray(`Executing TypeScript file with tsx: ${filePath}`));
+    }
+
+    // Set environment variables for the child process
+    const env = {
+      ...process.env,
+      SMALLTALK_PLAYGROUND_MODE: 'true',
+      SMALLTALK_PLAYGROUND_PORT: options.port ? options.port.toString() : '3126',
+      SMALLTALK_PLAYGROUND_HOST: options.host || 'localhost'
+    };
+
+    const child = spawn('npx', ['tsx', filePath], {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+      env
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Process exited with code ${code}`));
+      }
+    });
+
+    child.on('error', (error) => {
+      if (error.message.includes('ENOENT')) {
+        reject(new Error(
+          `tsx not found. Please ensure tsx is installed:\n` +
+          `  npm install -g tsx\n` +
+          `Or run directly: npx tsx ${filePath}`
+        ));
+      } else {
+        reject(error);
+      }
+    });
+  });
 }

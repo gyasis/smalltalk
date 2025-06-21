@@ -8,7 +8,7 @@ import {
 
 // Playground configuration for web mode
 export const playgroundConfig: PlaygroundConfig = {
-  port: 4003,
+  port: 3126,
   host: 'localhost',
   title: '💼 Business Meeting Simulator',
   description: 'Executive team simulation with specialized business agents',
@@ -382,50 +382,88 @@ Position: ${market_position}
   return app;
 }
 
-// Create the app instance
-const app = await createBusinessMeetingApp();
+async function initializeApp() {
+  const app = await createBusinessMeetingApp();
+  // Add CLI interface
+  const cli = new CLIInterface();
+  app.addInterface(cli);
+  return app;
+}
 
-// Add CLI interface for direct execution
-const cli = new CLIInterface();
-app.addInterface(cli);
+export default initializeApp;
 
-// Export for CLI usage
-export default app;
-
-// Backward compatibility - run if executed directly
-if (require.main === module) {
-  console.log('💼 Business Meeting - SmallTalk Framework');
-  console.log('=========================================');
-  console.log('✅ Business Meeting Environment Ready!');
-  console.log('🎯 Intelligent orchestration enabled - agents will be selected based on your needs');
-  
-  console.log('\n👥 Executive Team Available:');
-  console.log('• CEO - Strategic leadership and high-level decisions');
-  console.log('• MarketingLead - Marketing strategy and brand positioning');
-  console.log('• TechLead - Technical feasibility and implementation');
-  console.log('• SalesChief - Sales strategy and customer value');
-  console.log('• ResearchPro - Market research and competitive analysis');
-  console.log('• ProjectManager - Project planning and coordination');
-  console.log('• FinanceAdvisor - Financial analysis and budgeting');
-  
-  console.log('\n💡 Business Scenarios to Try:');
-  console.log('• "We want to launch a new mobile app for food delivery"');
-  console.log('• "Analyze the market for AI-powered customer service tools"');
-  console.log('• "Create a marketing strategy for our SaaS product launch"');
-  console.log('• "Assess technical feasibility of blockchain integration"');
-  console.log('• "Develop a go-to-market plan for our new feature"');
-  console.log('• "Research competitors in the fintech space"');
-  console.log('• "Plan a website redesign project with $50k budget"');
-  
-  console.log('\n🎯 Meeting Features:');
-  console.log('• Intelligent agent selection based on your question');
-  console.log('• Use /agent <name> to speak with specific experts');
-  console.log('• Agents have specialized tools for analysis and planning');
-  console.log('• Build comprehensive business strategies collaboratively');
-  console.log('\n');
-  
-  app.start().catch((error) => {
-    console.error('❌ Failed to start business meeting:', error);
-    process.exit(1);
-  });
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.SMALLTALK_PLAYGROUND_MODE === 'true') {
+      // Playground mode - set up web interface
+      const app = await createBusinessMeetingApp();
+      
+      const { WebChatInterface } = await import('../src/index.js');
+      
+      // Dynamic port configuration
+      const port = process.env.SMALLTALK_PLAYGROUND_PORT 
+        ? parseInt(process.env.SMALLTALK_PLAYGROUND_PORT) 
+        : (playgroundConfig.port || 3126);
+      const host = process.env.SMALLTALK_PLAYGROUND_HOST || playgroundConfig.host || 'localhost';
+      
+      const webChat = new WebChatInterface({
+        port,
+        host,
+        cors: { origin: '*' },
+        orchestrationMode: playgroundConfig.orchestrationMode || false,
+        enableChatUI: playgroundConfig.enableChatUI !== false,
+        title: playgroundConfig.title,
+        description: playgroundConfig.description,
+        type: 'web'
+      });
+      
+      app.addInterface(webChat);
+      
+      console.log('✅ Starting SmallTalk Playground...');
+      console.log(`🌐 Web Interface: http://${host}:${port}`);
+      if (playgroundConfig.title) console.log(`📋 Title: ${playgroundConfig.title}`);
+      if (playgroundConfig.description) console.log(`📝 Description: ${playgroundConfig.description}`);
+      console.log();
+      console.log('Press Ctrl+C to stop the server');
+      
+      await app.start();
+    } else {
+      // CLI mode
+      const app = await initializeApp();
+      console.log('💼 Business Meeting - SmallTalk Framework');
+      console.log('=========================================');
+      console.log('✅ Business Meeting Environment Ready!');
+      console.log('🎯 Intelligent orchestration enabled - agents will be selected based on your needs');
+      
+      console.log('\n👥 Executive Team Available:');
+      console.log('• CEO - Strategic leadership and high-level decisions');
+      console.log('• MarketingLead - Marketing strategy and brand positioning');
+      console.log('• TechLead - Technical feasibility and implementation');
+      console.log('• SalesChief - Sales strategy and customer value');
+      console.log('• ResearchPro - Market research and competitive analysis');
+      console.log('• ProjectManager - Project planning and coordination');
+      console.log('• FinanceAdvisor - Financial analysis and budgeting');
+      
+      console.log('\n💡 Business Scenarios to Try:');
+      console.log('• "We want to launch a new mobile app for food delivery"');
+      console.log('• "Analyze the market for AI-powered customer service tools"');
+      console.log('• "Create a marketing strategy for our SaaS product launch"');
+      console.log('• "Assess technical feasibility of blockchain integration"');
+      console.log('• "Develop a go-to-market plan for our new feature"');
+      console.log('• "Research competitors in the fintech space"');
+      console.log('• "Plan a website redesign project with $50k budget"');
+      
+      console.log('\n🎯 Meeting Features:');
+      console.log('• Intelligent agent selection based on your question');
+      console.log('• Use /agent <name> to speak with specific experts');
+      console.log('• Agents have specialized tools for analysis and planning');
+      console.log('• Build comprehensive business strategies collaboratively');
+      console.log('\n');
+      
+      app.start().catch((error) => {
+        console.error('❌ Failed to start business meeting:', error);
+        process.exit(1);
+      });
+    }
+  })();
 }
