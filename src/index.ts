@@ -46,7 +46,8 @@ export type {
   FlowContext,
   BaseInterface as IBaseInterface,
   Agent as IAgent,
-  SmallTalkFramework
+  SmallTalkFramework,
+  PlaygroundConfig
 } from './types/index.js';
 
 // Re-export commonly used interfaces for convenience

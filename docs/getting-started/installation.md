@@ -168,12 +168,32 @@ export default {
 ## ✅ Verify Installation
 
 ### **Test Core Framework**
+
+#### **Using NEW SmallTalk CLI (v0.2.1+)**
+```bash
+# Install CLI globally for direct access
+npm install -g smalltalk
+
+# Test CLI mode
+smalltalk examples/simple-test.ts
+
+# Test playground mode (web interface)
+smalltalk playground examples/simple-test.ts
+
+# Expected output:
+# 🎯 SmallTalk CLI Mode
+# Running: examples/simple-test.ts
+# ✅ Starting SmallTalk CLI...
+# > Hello! I'm your AI assistant. How can I help?
+```
+
+#### **Using Legacy npm Scripts**
 ```bash
 # Run basic example
 npm run example:basic
 
 # Expected output:
-# 🤖 SmallTalk Framework v0.1.0
+# 🤖 SmallTalk Framework v0.2.1
 # 🎭 Loaded agent: Assistant
 # 💬 Starting CLI interface...
 # > Hello! I'm your AI assistant. How can I help?
@@ -227,6 +247,48 @@ lsof -ti:3000 | xargs kill
 ```bash
 # Fix file permissions
 chmod +x node_modules/.bin/smalltalk
+```
+
+**"Unknown file extension .ts" with SmallTalk CLI**
+This is expected behavior. The SmallTalk CLI currently works with:
+
+```bash
+# ✅ Recommended approaches:
+# 1. Use tsx for TypeScript development
+npm install -g tsx
+tsx examples/language-tutor.ts
+
+# 2. Use built JavaScript files  
+npm run build
+smalltalk dist/examples/language-tutor.js
+
+# 3. Use legacy npm scripts (uses tsx internally)
+npm run example:language
+
+# 4. Use npm run with CLI for development
+npm run smalltalk:language
+```
+
+**Future Support**: Direct TypeScript execution in CLI is planned for v0.3.0.
+
+**"Script must export a SmallTalk instance"**
+Make sure your script follows the new CLI pattern:
+
+```typescript
+// ❌ Old pattern
+const app = new SmallTalk();
+app.addInterface(new CLIInterface());
+app.start();
+
+// ✅ New pattern  
+const app = new SmallTalk();
+export default app; // Required for CLI
+
+// Optional: Add for playground mode
+export const playgroundConfig = {
+  port: 3000,
+  host: 'localhost'
+};
 ```
 
 ### **System-Specific Setup**

@@ -127,6 +127,7 @@ app.start(); // Your AI code reviewer is live!
 
 ### 🏁 **Getting Started**
 - [Installation & Setup](./getting-started/installation.md)
+- [**🖥️ SmallTalk CLI Reference**](./cli-reference.md) ⭐ **NEW v0.2.1**
 - [Your First Agent](./getting-started/first-agent.md)
 - [Configuration Guide](./getting-started/configuration.md)
 

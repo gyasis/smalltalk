@@ -21,13 +21,16 @@ export interface SmallTalkConfig {
 
 export interface AgentConfig {
   name: string;
+  model?: string;
   personality?: string;
   systemPrompt?: string;
+  systemPromptFile?: string;
   temperature?: number;
   maxTokens?: number;
   tools?: string[];
   mcpServers?: string[];
   promptTemplates?: Record<string, string>;
+  promptTemplateFiles?: Record<string, string>;
 }
 
 export interface ChatMessage {
@@ -189,4 +192,15 @@ export interface SmallTalkFramework {
   enableMCP(servers: MCPServerConfig[]): Promise<void>;
   start(): Promise<void>;
   stop(): Promise<void>;
+}
+
+// CLI Execution Model Types
+export interface PlaygroundConfig {
+  port?: number;
+  host?: string;
+  cors?: any;
+  orchestrationMode?: boolean;
+  enableChatUI?: boolean;
+  title?: string;
+  description?: string;
 }

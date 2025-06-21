@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events';
 import { nanoid } from 'nanoid';
+import fs from 'fs';
+import path from 'path';
 import {
   Agent as IAgent,
   AgentConfig,
@@ -34,8 +36,12 @@ export class Agent extends EventEmitter implements IAgent {
     
     this.name = config.name;
     
+    // Load prompts from files if specified
+    this.loadPromptsFromFiles();
+    
     // Initialize LLM wrapper with agent-specific settings
     this.llmWrapper = new TokenJSWrapper({
+      model: this.config.model,
       temperature: this.config.temperature,
       maxTokens: this.config.maxTokens
     });
@@ -95,6 +101,47 @@ Please respond as {{agentName}} maintaining your personality and expertise.
     }
 
     this.emit('personality_loaded', this.personality);
+  }
+
+  private loadPromptsFromFiles(): void {
+    // Load system prompt from file
+    if (this.config.systemPromptFile) {
+      try {
+        const filePath = path.resolve(this.config.systemPromptFile);
+        this.config.systemPrompt = fs.readFileSync(filePath, 'utf-8');
+        if (this.config.systemPrompt) {
+          const systemTemplate = this.promptManager.createTemplateFromString('system', this.config.systemPrompt);
+          this.promptManager.addTemplate(systemTemplate);
+        }
+      } catch (error) {
+        console.error(`[Agent:${this.name}] Error loading system prompt from ${this.config.systemPromptFile}:`, error);
+      }
+    }
+
+    // Load prompt templates from files
+    if (this.config.promptTemplateFiles) {
+      if (!this.config.promptTemplates) {
+        this.config.promptTemplates = {};
+      }
+      for (const [name, templatePath] of Object.entries(this.config.promptTemplateFiles)) {
+        try {
+          const filePath = path.resolve(templatePath);
+          this.config.promptTemplates[name] = fs.readFileSync(filePath, 'utf-8');
+          
+          // Assuming the template is a simple string for now.
+          // For complex templates with variables, we'd need a parsing mechanism.
+          const loadedTemplate: PromptTemplate = {
+            name,
+            template: this.config.promptTemplates[name],
+            variables: [] // Placeholder: real implementation would parse variables
+          };
+          this.setPromptTemplate(name, loadedTemplate);
+
+        } catch (error) {
+          console.error(`[Agent:${this.name}] Error loading prompt template '${name}' from ${templatePath}:`, error);
+        }
+      }
+    }
   }
 
   public async generateResponse(message: string, context: FlowContext): Promise<string> {

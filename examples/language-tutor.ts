@@ -5,8 +5,19 @@ import {
   CLIInterface,
   Agent,
   AgentFactory,
-  PromptTemplate
+  PromptTemplate,
+  PlaygroundConfig
 } from '../src/index.js';
+
+// NEW: Playground configuration for `smalltalk playground` command
+export const playgroundConfig: PlaygroundConfig = {
+  port: 4001,
+  host: 'localhost',
+  title: '🌍 Language Learning Tutor',
+  description: 'Multi-agent language learning environment with Professor, ChatBuddy, GrammarGuru, and SpeechCoach',
+  orchestrationMode: false,
+  enableChatUI: true
+};
 
 async function createLanguageTutorApp() {
   const app = new SmallTalk({
@@ -181,31 +192,18 @@ Keep it fun and authentic!`,
   app.addAgent(grammarExpert);
   app.addAgent(pronunciationCoach);
 
-  // Create custom CLI interface for language learning
-  const cli = new CLIInterface({
-    type: 'cli',
-    prompt: '🌍 ',
-    colors: {
-      user: '#3498db',
-      assistant: '#2ecc71',
-      system: '#f39c12',
-      error: '#e74c3c'
-    },
-    showTimestamps: false,
-    showAgentNames: true
-  });
-
-  app.addInterface(cli);
-
   return app;
 }
 
-async function main() {
+// NEW: Create and export the configured app for `smalltalk` commands
+const app = createLanguageTutorApp();
+export default app;
+
+async function main(tutorApp: SmallTalk) {
   console.log('🌍 Language Tutor - SmallTalk Framework');
   console.log('=====================================');
   
-  const app = await createLanguageTutorApp();
-  await app.start();
+  await tutorApp.start();
 
   console.log('\n✅ Language Learning Environment Ready!');
   console.log('\n🎓 Available Tutors:');
@@ -240,8 +238,32 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-// Run the language tutor
-main().catch((error) => {
-  console.error('❌ Failed to start language tutor:', error);
-  process.exit(1);
-});
+// LEGACY: Backward compatibility for `npx tsx` execution
+if (require.main === module) {
+  async function runLegacyMode() {
+    const tutorApp = await createLanguageTutorApp();
+    
+    // Create custom CLI interface for language learning
+    const cli = new CLIInterface({
+      type: 'cli',
+      prompt: '🌍 ',
+      colors: {
+        user: '#3498db',
+        assistant: '#2ecc71',
+        system: '#f39c12',
+        error: '#e74c3c'
+      },
+      showTimestamps: false,
+      showAgentNames: true
+    });
+
+    tutorApp.addInterface(cli);
+    await main(tutorApp);
+  }
+
+  // Run the language tutor
+  runLegacyMode().catch((error) => {
+    console.error('❌ Failed to start language tutor:', error);
+    process.exit(1);
+  });
+}

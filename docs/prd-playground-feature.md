@@ -1,85 +1,89 @@
-# PRD: The SmallTalk Agent Playground
+# PRD: The SmallTalk Standardized Execution Model
 
-**Title:** A generic "Playground" command to visually run, test, and debug any SmallTalk agent script.
+**Title:** A Standardized Execution Model for SmallTalk Scripts (`cli` vs `playground`).
 
 ---
 
 ### 1. Overview & Problem Statement
 
-Currently, testing and visualizing agent behavior requires developers to write significant boilerplate code. Each new example, like `examples/web-chat-ui.ts`, must manually create a `SmallTalk` instance, define agents, set up a `WebChatInterface`, and handle the server lifecycle and event wiring. This process is repetitive, time-consuming, and mixes agent logic with UI presentation concerns.
+Currently, testing agent behavior requires developers to write significant boilerplate code to set up an interface (`CLIInterface` or `WebChatInterface`). Furthermore, our examples are run with inconsistent commands (`npx tsx`, etc.), creating a confusing developer experience.
 
-This friction discourages rapid prototyping and makes debugging a purely console-based affair unless the developer invests in building a custom UI for their specific test case. We need a way to instantly visualize *any* agent script in a rich, interactive web UI without forcing the developer to write any UI-specific code.
+We need a single, unified way to run *any* agent script. The developer should be able to write their agent logic in a single file and then choose to run it in a standard command-line interface or a rich web "Playground" with a simple, consistent command.
 
 ### 2. Goals & Objectives
 
-*   **Primary Goal:** To provide a zero-configuration, command-line-driven tool that launches a web-based "Playground" for any agent script.
-*   **Developer Experience:** Drastically simplify the process of testing and debugging agents by separating agent logic from UI presentation.
-*   **Rapid Prototyping:** Enable developers to go from a simple agent script to a fully interactive web demo in seconds.
-*   **Code Reusability:** Eliminate redundant UI setup code across all example and test scripts. The Playground will provide the UI, and the user will provide only the agent logic.
+*   **Primary Goal:** To provide a zero-configuration way to run any agent script in two modes: a default CLI mode and an optional web "Playground" mode.
+*   **Standardization:** Consolidate all script execution under a single `smalltalk` command.
+*   **Developer Experience:** Completely separate agent logic from interface presentation. The user provides the agents; SmallTalk provides the interface.
+*   **Clarity:** A script intended for the web playground must explicitly contain a `playgroundConfig` object, otherwise the command will fail with a helpful error.
 
 ### 3. Scope
 
 #### In-Scope:
-*   A new CLI command: `smalltalk playground <filePath>`.
-*   The command will launch a generic, pre-built web UI for chat and orchestration visualization.
-*   The UI will be capable of connecting to the `SmallTalk` instance defined in the user-provided script.
-*   The system will handle all WebSocket connections, event broadcasting, and server lifecycle management automatically.
-*   The Playground will support all existing `SmallTalk` features, including multi-agent orchestration, event streaming, and user interruptions.
+*   A default CLI command: `smalltalk <filePath>`.
+*   A web UI command: `smalltalk playground <filePath>`.
+*   The `playground` command will require the target script to export a `playgroundConfig` object.
+*   Automatic interface instantiation, server lifecycle, and event wiring based on the command used.
+*   Refactoring all existing examples and documentation to use this new model.
 
 #### Out-of-Scope:
-*   A full-fledged, production-grade chat application. The Playground is a developer tool.
-*   Advanced debugging features like step-through execution, breakpoints, or variable inspection (these could be future enhancements).
-*   Custom styling or UI configurations per-project. The Playground will have one standard interface.
+*   Advanced debugging features like step-through execution or breakpoints.
 
 ### 4. Personas & User Stories
 
-*   **Persona:** Alex, a developer using the SmallTalk library to build a new multi-agent system.
+*   **Persona:** Alex, a developer using the SmallTalk library.
 
 *   **User Stories:**
-    *   "As Alex, I want to run my `my-cool-agent.ts` script in a visual chat interface so that I can easily test its responses and behavior without writing any HTML or server code."
-    *   "As Alex, I want to see the orchestration plan and agent steps execute in real-time in the UI so that I can debug the flow of my multi-agent system."
-    *   "As Alex, I want to be able to just focus on writing my agent's logic and capabilities, and have the library provide the visualization for me automatically."
+    *   "As Alex, I want to run `smalltalk my-agent.ts` to quickly test its logic in my terminal."
+    *   "As Alex, when I want a UI, I can add a `playgroundConfig` to my file and run `smalltalk playground my-agent.ts` to get a web UI without changing any other code."
+    *   "As Alex, if I run `playground` on a file without the config, I want the tool to tell me exactly what I need to add."
 
 ### 5. Requirements & Features
 
-#### 5.1. CLI Command: `smalltalk playground`
+#### 5.1. CLI Commands
 
-*   The command shall be registered as part of the `smalltalk` executable.
-*   It must accept a mandatory file path as an argument (e.g., `smalltalk playground ./examples/my-agents.ts`).
-*   It should accept optional arguments for configuration, such as `--port <number>`.
-*   The command will be responsible for starting the web server and the user's `SmallTalk` instance.
+*   **`smalltalk <filePath> [args...]`**:
+    *   This is the default command for CLI interaction.
+    *   It will programmatically instantiate and run a `CLIInterface`.
+*   **`smalltalk playground <filePath> [args...]`**:
+    *   This command executes the script with the web "Playground" interface.
+    *   It will fail if the target script does not export a `playgroundConfig` object.
 
-#### 5.2. User Agent Script Requirements
+#### 5.2. User Agent Script Contract
 
-*   To be "Playground-compatible," a user's TypeScript file must meet one simple contract: it must export a configured `SmallTalk` instance as its default export.
-*   The user script is responsible *only* for:
-    1.  Instantiating `SmallTalk`.
-    2.  Configuring the instance (LLM, orchestration, memory, etc.).
-    3.  Creating and adding agents.
-*   The user script should **not** instantiate any `Interface` (like `WebChatInterface`) or call `app.start()`.
+A script becomes compatible with the SmallTalk execution model by adhering to this contract:
 
-**Example User Script (`./examples/language-tutor-playground.ts`):**
+1.  **Default Export:** It MUST `export default` a configured `SmallTalk` instance. This is the core agent logic.
+2.  **Playground Configuration:** To be used with the `playground` command, it MUST also `export const playgroundConfig = { ... }`. This acts as a "decorator," explicitly marking the file as web-compatible and providing UI-specific settings.
+
+The user script should **never** instantiate an `Interface` or call `app.start()`.
+
+**Example Playground-Compatible Script (`./examples/language-tutor.ts`):**
 ```typescript
-import { SmallTalk, AgentFactory } from 'smalltalk';
+import { SmallTalk, AgentFactory, PlaygroundConfig } from 'smalltalk';
 
-// 1. Create and configure the SmallTalk app
+// This configuration makes the script compatible with `smalltalk playground`
+export const playgroundConfig: PlaygroundConfig = {
+  port: 4001,
+  host: 'localhost',
+};
+
+// The default export is the core application logic
 const app = new SmallTalk({
   llmProvider: 'openai',
   model: 'gpt-4o',
-  orchestration: false,
 });
 
-// 2. Create agents
 const tutor = AgentFactory.createLanguageTutor('Spanish');
-const student = AgentFactory.createLanguageStudent();
-
-// 3. Add agents to the app
 app.addAgent(tutor);
-app.addAgent(student);
 
-// 4. Export the configured instance
 export default app;
 ```
+This single file can now be run in two ways:
+*   `smalltalk ./examples/language-tutor.ts` (runs in CLI)
+*   `smalltalk playground ./examples/language-tutor.ts` (runs in Web UI on port 4001)
+
+If `playgroundConfig` were omitted, the `playground` command would fail with a helpful error message.
 
 #### 5.3. Playground Web UI
 
@@ -90,15 +94,17 @@ export default app;
 
 #### 5.4. Execution Workflow
 
-1.  Developer runs `smalltalk playground ./examples/my-script.ts`.
-2.  The `playground` command boots up.
-3.  It dynamically imports the `SmallTalk` instance from `./examples/my-script.ts`.
-4.  It programmatically creates a new `WebChatInterface` instance (the Playground UI server).
-5.  It adds this interface to the user's imported `SmallTalk` instance (`app.addInterface(playgroundInterface)`).
-6.  It wires up all necessary event listeners between the `app` and the `playgroundInterface` to ensure the UI is updated on events (`plan_created`, `streaming_response`, etc.).
+1.  Developer runs `smalltalk <file>` or `smalltalk playground <file>`.
+2.  The command boots up.
+3.  It dynamically imports the module from the specified file path.
+4.  It checks for the `default` export (the `SmallTalk` instance). If it's missing, it fails.
+5.  **If `playground` command was used:**
+    *   It also checks for the named export `playgroundConfig`.
+    *   If `playgroundConfig` is missing, it exits with an error explaining that the config must be exported to use the playground.
+    *   It uses the config to instantiate and run the `WebChatInterface`.
+6.  **If default command was used:**
+    *   It instantiates and runs the `CLIInterface`.
 7.  It calls `app.start()`.
-8.  It logs the URL to the console (e.g., `Playground is running at http://localhost:3045`) and optionally opens it in the user's default browser.
-9.  The user can now interact with their agents via the web UI.
 
 ### 6. High-Level Technical Approach
 
@@ -110,6 +116,7 @@ export default app;
 
 ### 7. Success Metrics
 
-*   **Adoption:** All new and existing example scripts are refactored to use the `playground` command, removing >50% of the lines of code from each.
-*   **Developer Feedback:** Positive feedback from developers that the new workflow is significantly faster and easier for testing and debugging.
-*   **Feature Velocity:** New agent ideas can be prototyped and shared visually in minutes rather than hours. 
+*   **Standardization:** All `examples/*.ts` files and documentation are updated to use the `smalltalk` and `smalltalk playground` commands.
+*   **Clarity:** The `playgroundConfig` requirement proves effective at guiding users.
+*   **Developer Feedback:** Positive feedback on the simplicity and consistency of the new execution model.
+*   **Feature Velocity:** New agent ideas can be prototyped and shared visually or in the CLI in minutes. 

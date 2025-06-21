@@ -46,6 +46,19 @@ npm start
 npm install smalltalk
 ```
 
+### **Option 3: Direct CLI Commands (NEW!)**
+```bash
+# Install SmallTalk globally
+npm install -g smalltalk
+
+# Run any script directly
+smalltalk examples/language-tutor.ts
+smalltalk playground examples/language-tutor.ts --port 4000
+
+# Or locally after npm install
+npx smalltalk examples/simple-chat.ts
+```
+
 ```typescript
 import { SmallTalk, Agent } from 'smalltalk';
 
@@ -389,6 +402,213 @@ Multi-agent executive team for strategic decision making and analysis.
 npm run example:orchestrator-demo
 ```
 Interactive demo showing intelligent agent routing in real-time.
+
+---
+
+## 🖥️ SmallTalk CLI (v0.2.1)
+
+**NEW**: Run any SmallTalk script with unified CLI commands - no more boilerplate!
+
+### **🚀 Installation**
+```bash
+# Global installation (recommended)
+npm install -g smalltalk
+
+# Or use locally
+npm install smalltalk
+npx smalltalk --help
+```
+
+### **📋 Commands**
+| Command | Description | Example |
+|---------|-------------|---------|
+| `smalltalk <file>` | Run script in CLI mode | `smalltalk examples/tutor.ts` |
+| `smalltalk playground <file>` | Run script in web playground | `smalltalk playground examples/tutor.ts` |
+| `smalltalk help` | Show detailed help | `smalltalk help` |
+| `smalltalk --version` | Show version info | `smalltalk --version` |
+
+### **🎯 CLI Mode**
+Perfect for development, testing, and command-line interaction:
+
+```bash
+# Basic usage
+smalltalk examples/simple-test.ts
+
+# With verbose output
+smalltalk examples/language-tutor.ts --verbose
+
+# Custom configuration
+smalltalk my-agent.ts --port 3001
+```
+
+**Example Output:**
+```
+🎯 SmallTalk CLI Mode
+Running: examples/simple-test.ts
+✅ Starting SmallTalk CLI...
+🗣️  SmallTalk CLI Interface
+> Hello! How can I help you today?
+```
+
+### **🌐 Playground Mode**
+Rich web interface with real-time features:
+
+```bash
+# Start web playground
+smalltalk playground examples/language-tutor.ts
+
+# Custom port and host
+smalltalk playground examples/orchestrator-demo.ts --port 4000 --host 0.0.0.0
+
+# With verbose logging
+smalltalk playground examples/business-meeting.ts --verbose
+```
+
+**Example Output:**
+```
+🌐 SmallTalk Playground Mode
+Running: examples/language-tutor.ts
+✅ Starting SmallTalk Playground...
+🌐 Web Interface: http://localhost:4001
+📋 Title: 🌍 Language Learning Tutor
+🎯 Orchestration mode enabled
+```
+
+### **📝 Script Requirements**
+
+#### **For CLI Mode:**
+Your script must export a configured SmallTalk instance:
+
+```typescript
+import { SmallTalk, Agent } from 'smalltalk';
+
+// Create and configure your app
+const app = new SmallTalk({
+  llmProvider: 'openai',
+  model: 'gpt-4o'
+});
+
+// Add your agents
+const tutor = new Agent({
+  name: 'Tutor',
+  personality: 'helpful and patient'
+});
+app.addAgent(tutor);
+
+// NEW: Export for CLI commands
+export default app;
+```
+
+#### **For Playground Mode:**
+Additionally export a `playgroundConfig`:
+
+```typescript
+// All the above, plus:
+
+// NEW: Playground configuration
+export const playgroundConfig = {
+  port: 4001,
+  host: 'localhost',
+  title: '🎓 My Learning Assistant',
+  description: 'Interactive AI tutor',
+  orchestrationMode: true,
+  enableChatUI: true
+};
+```
+
+### **🔄 Backward Compatibility**
+All existing scripts continue to work with `npx tsx`:
+
+```bash
+# Old way (still works)
+npx tsx examples/language-tutor.ts
+
+# New way (preferred)
+smalltalk examples/language-tutor.ts
+```
+
+### **⚡ TypeScript Execution**
+
+**Current Behavior:**
+- **Development**: Use `tsx` for direct TypeScript execution
+- **Production**: Use compiled JavaScript files
+- **CLI**: Validates exports and provides helpful error messages
+
+**Example Error Handling:**
+```bash
+$ smalltalk examples/broken-script.ts
+❌ Error: Script must export a SmallTalk instance as default export.
+
+Example:
+  const app = new SmallTalk({ ... });
+  app.addAgent(myAgent);
+  export default app;
+
+For backward compatibility, you can also use:
+  npx tsx examples/broken-script.ts
+```
+
+**Playground Requirements:**
+```bash
+$ smalltalk playground examples/missing-config.ts
+❌ Error: Playground mode requires a 'playgroundConfig' export.
+
+Add this to your script:
+  export const playgroundConfig = {
+    port: 3000,
+    host: 'localhost'
+  };
+
+Or use CLI mode instead: smalltalk examples/missing-config.ts
+```
+
+### **🎮 npm Scripts Integration**
+Update your package.json with both approaches:
+
+```json
+{
+  "scripts": {
+    "start": "smalltalk src/main.ts",
+    "dev": "smalltalk src/main.ts --verbose",
+    "playground": "smalltalk playground src/main.ts",
+    "legacy:start": "npx tsx src/main.ts"
+  }
+}
+```
+
+### **🚀 Migration from npm run**
+**Before (boilerplate required):**
+```typescript
+// examples/old-way.ts
+const app = new SmallTalk();
+const cli = new CLIInterface();
+app.addInterface(cli);
+await app.start(); // Manual setup
+```
+
+**After (zero boilerplate):**
+```typescript
+// examples/new-way.ts
+const app = new SmallTalk();
+export default app; // That's it!
+```
+
+**Run it:**
+```bash
+# Before
+npm run example:old-way
+
+# After  
+smalltalk examples/new-way.ts
+```
+
+### **✨ Benefits**
+- ✅ **Zero Boilerplate**: No interface setup required
+- ✅ **Consistent Commands**: Same `smalltalk` command for everything
+- ✅ **Better Errors**: Helpful validation and suggestions
+- ✅ **Type Safety**: Full TypeScript support with validation
+- ✅ **Backward Compatible**: All existing scripts work unchanged
+- ✅ **Global Access**: Install once, use anywhere
 
 ---
 
