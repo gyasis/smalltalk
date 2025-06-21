@@ -33,6 +33,11 @@ Every interaction is powered by intelligent agents with distinct personalities, 
 
 ## ⚡ Quick Start (30 seconds)
 
+### **📋 Prerequisites**
+- **Node.js 18+** (for ES modules and latest features)
+- **npm 8+**, **yarn 1.22+**, or **pnpm 7+**
+- **API Key** from OpenAI, Anthropic, Google Gemini, or other providers
+
 ### **Option 1: Create from Template**
 ```bash
 npx create-smalltalk my-ai-app --template=language-tutor
@@ -57,6 +62,21 @@ smalltalk playground examples/language-tutor.ts --port 4000
 
 # Or locally after npm install
 npx smalltalk examples/simple-chat.ts
+```
+
+### **🔧 Environment Setup**
+```bash
+# Choose your preferred LLM provider
+export OPENAI_API_KEY=your_openai_key
+# OR
+export ANTHROPIC_API_KEY=your_anthropic_key  
+# OR
+export GEMINI_API_KEY=your_gemini_key
+
+# Optional configuration
+export SMALLTALK_DEBUG=true
+export SMALLTALK_DEFAULT_PROVIDER=openai
+export SMALLTALK_DEFAULT_MODEL=gpt-4o
 ```
 
 ```typescript
@@ -98,6 +118,45 @@ app.addAgent(expert, {
 await app.start();
 // 🎉 Your intelligent AI system is live!
 ```
+
+### **📄 Agent Manifest Configuration** ⭐ **NEW v0.2.2**
+
+Create agents from external YAML or JSON files for better organization:
+
+```typescript
+import { SmallTalk } from 'smalltalk';
+
+const app = new SmallTalk();
+
+// Load individual agent from manifest
+await app.addAgentFromFile('./agents/data-analyst.yaml');
+
+// Load all agents from directory
+await app.loadAgentsFromDirectory('./agents/');
+
+export default app;
+```
+
+**Example Agent Manifest** (`agents/analyst.yaml`):
+```yaml
+config:
+  name: "DataAnalyst" 
+  model: "gpt-4o"
+  systemPromptFile: "./prompts/analyst_system.md"
+  promptTemplateFiles:
+    report: "./prompts/report_template.md"
+
+capabilities:
+  expertise: ["data analysis", "statistics"]
+  complexity: "advanced" 
+  taskTypes: ["analysis", "reporting"]
+```
+
+**Benefits:**
+- ✅ **Organized Configuration**: Keep complex prompts in separate files
+- ✅ **Reusable Agents**: Share agent definitions across projects
+- ✅ **Version Control**: Track agent changes with git
+- ✅ **Team Collaboration**: Clear agent specifications
 
 ---
 
@@ -790,6 +849,64 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 - [**Token.js**](https://docs.tokenjs.ai/) - Unified LLM SDK (200+ models)
 - [**PocketFlow.js**](https://pocketflow.dev/) - Minimalist LLM framework inspiration
 - [**Model Context Protocol**](https://modelcontextprotocol.io/) - MCP specification
+
+---
+
+## 🔧 Troubleshooting
+
+### **Common Installation Issues**
+
+**"Cannot find module 'token.js'"**
+```bash
+# Token.js is required for LLM integration
+npm install token.js
+```
+
+**"API key not found"**
+```bash
+# Make sure environment variables are set
+echo "OPENAI_API_KEY=your_key_here" > .env
+# OR set globally
+export OPENAI_API_KEY=your_key_here
+```
+
+**"Port already in use"**
+```bash
+# Change port in your script or kill existing process
+lsof -ti:3000 | xargs kill
+# OR use different port
+smalltalk playground examples/script.ts --port 3001
+```
+
+**"Unknown file extension .ts"**
+```bash
+# For development, use tsx
+npm install -g tsx
+tsx examples/script.ts
+
+# For production, build first
+npm run build
+smalltalk dist/examples/script.js
+
+# Or use npm scripts (recommended)
+npm run smalltalk:script
+```
+
+### **Dependency Issues**
+If any dependencies fail to install:
+
+1. **Check Node.js version**: `node --version` (should be 18+)
+2. **Clear npm cache**: `npm cache clean --force`
+3. **Reinstall**: `rm -rf node_modules && npm install`
+4. **Try yarn**: `yarn install`
+5. **Use minimal install**: Install only core dependencies as needed
+
+### **MCP Integration (Optional)**
+```bash
+# If MCP SDK fails to install, MCP features will be disabled
+# Core chat functionality will still work
+npm install @modelcontextprotocol/sdk
+```
 
 ---
 

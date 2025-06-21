@@ -1,6 +1,6 @@
 {
   "name": "smalltalk",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "A complete TypeScript framework for building LLM applications with agent support and MCP integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,11 +25,13 @@
     "example:business": "tsx examples/business-meeting.ts",
     "example:web-api": "tsx examples/web-api-server.ts",
     "example:web-chat": "tsx examples/web-chat-ui.ts",
+    "example:manifest": "tsx examples/manifest-demo.ts",
     "smalltalk:test": "npx tsx src/cli/index.ts examples/simple-test.ts",
     "smalltalk:test-playground": "npx tsx src/cli/index.ts playground examples/simple-test.ts",
     "smalltalk:language": "npx tsx src/cli/index.ts examples/language-tutor.ts",
     "smalltalk:language-playground": "npx tsx src/cli/index.ts playground examples/language-tutor.ts",
-    "examples": "echo '🎯 Available examples:\n⭐ NEW: SmallTalk CLI Commands (preferred):\n• npm run smalltalk:test - Simple test with CLI mode\n• npm run smalltalk:test-playground - Simple test with web playground\n• npm run smalltalk:language - Language tutor with CLI mode\n• npm run smalltalk:language-playground - Language tutor with web playground\n\n📋 Legacy examples (npx tsx):\n• npm run example:orchestrator - Intelligent agent orchestration demo\n• npm run example:basic - Basic CLI chat with agents\n• npm run example:language - Language learning tutor (CLI)\n• npm run example:medical - Medical education tutor (CLI)\n• npm run example:business - Multi-agent business meeting (CLI)\n• npm run example:web-api - Express API server (no HTML)\n• npm run example:web-chat - Full web chat interface with HTML UI'"
+    "smalltalk:manifest": "npx tsx src/cli/index.ts examples/manifest-demo-simple.ts",
+    "examples": "echo '🎯 Available examples:\n⭐ NEW: SmallTalk CLI Commands (preferred):\n• npm run smalltalk:test - Simple test with CLI mode\n• npm run smalltalk:test-playground - Simple test with web playground\n• npm run smalltalk:language - Language tutor with CLI mode\n• npm run smalltalk:language-playground - Language tutor with web playground\n• npm run smalltalk:manifest - Manifest-based agent configuration demo\n\n📋 Legacy examples (npx tsx):\n• npm run example:orchestrator - Intelligent agent orchestration demo\n• npm run example:manifest - Manifest-based agent configuration (CLI)\n• npm run example:basic - Basic CLI chat with agents\n• npm run example:language - Language learning tutor (CLI)\n• npm run example:medical - Medical education tutor (CLI)\n• npm run example:business - Multi-agent business meeting (CLI)\n• npm run example:web-api - Express API server (no HTML)\n• npm run example:web-chat - Full web chat interface with HTML UI'"
   },
   "keywords": [
     "llm",

@@ -129,3 +129,24 @@ Token.js supports streaming, function calling, JSON output, and image inputs acr
 - **Action Space**: Define clear, unambiguous action sets for agents
 
 This project emphasizes collaboration between human system design and AI implementation, following the documented agentic coding principles throughout development.
+
+## Version Management
+
+### Package Version Updates
+When updating the SmallTalk version in package.json, you MUST also update the corresponding package file:
+
+**Current version file**: `/home/gyasis/Documents/code/smalltalk/smalltalk@0.2.3`
+
+**Update process**:
+1. Update version in `package.json` (e.g., from "0.2.3" to "0.2.4")
+2. Rename the package file to match: `smalltalk@0.1.0` → `smalltalk@0.2.4`
+3. Both files must stay in sync for proper version tracking
+
+**Example**:
+```bash
+# When updating from v0.2.3 to v0.2.4:
+# 1. Edit package.json: "version": "0.2.4"
+# 2. Rename: mv smalltalk@0.2.3 smalltalk@0.2.4
+```
+
+This ensures version consistency across the project files.

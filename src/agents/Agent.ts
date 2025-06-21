@@ -36,8 +36,8 @@ export class Agent extends EventEmitter implements IAgent {
     
     this.name = config.name;
     
-    // Load prompts from files if specified
-    this.loadPromptsFromFiles();
+    // Initialize prompt manager first
+    this.promptManager = new PromptTemplateManager();
     
     // Initialize LLM wrapper with agent-specific settings
     this.llmWrapper = new TokenJSWrapper({
@@ -45,8 +45,9 @@ export class Agent extends EventEmitter implements IAgent {
       temperature: this.config.temperature,
       maxTokens: this.config.maxTokens
     });
-
-    this.promptManager = new PromptTemplateManager();
+    
+    // Load prompts from files if specified (after promptManager is ready)
+    this.loadPromptsFromFiles();
     this.setupDefaultPrompts();
     
     // Load personality if provided

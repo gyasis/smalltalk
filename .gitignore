@@ -80,9 +80,12 @@ echo
 .connect.lock
 .typings/
 
-# Documentation temp files
-Forum_Extractor.md
-claude-code-tips_*.md
+# Root markdown files (except README.md)
+*.md
+!README.md
+
+# PRD and requirement documents
+prd/
 
 # IDE specific
 .history/

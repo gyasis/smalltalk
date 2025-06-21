@@ -204,3 +204,35 @@ export interface PlaygroundConfig {
   title?: string;
   description?: string;
 }
+
+// Agent Manifest Types
+export interface AgentManifest {
+  config: AgentConfig;
+  capabilities?: AgentCapabilities;
+  metadata?: AgentManifestMetadata;
+}
+
+export interface AgentCapabilities {
+  expertise?: string[];
+  tools?: string[];
+  personalityTraits?: string[];
+  taskTypes?: string[];
+  complexity?: 'basic' | 'intermediate' | 'advanced' | 'expert';
+  contextAwareness?: number;
+  collaborationStyle?: string;
+}
+
+export interface AgentManifestMetadata {
+  version?: string;
+  author?: string;
+  description?: string;
+  tags?: string[];
+  created?: string;
+  updated?: string;
+}
+
+export interface ManifestValidationError {
+  field: string;
+  message: string;
+  value?: any;
+}

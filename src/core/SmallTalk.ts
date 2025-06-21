@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events';
 import { nanoid } from 'nanoid';
+import { readdirSync, statSync } from 'fs';
+import { join, extname } from 'path';
 import {
   SmallTalkConfig,
   SmallTalkFramework,
@@ -8,13 +10,17 @@ import {
   MCPServerConfig,
   ChatSession,
   ChatMessage,
-  FlowContext
+  FlowContext,
+  AgentManifest,
+  AgentCapabilities
 } from '../types/index.js';
 import { Chat } from './Chat.js';
 import { Memory } from './Memory.js';
 import { MCPClient } from './MCPClient.js';
-import { OrchestratorAgent, AgentCapabilities, HandoffDecision } from '../agents/OrchestratorAgent.js';
+import { OrchestratorAgent, HandoffDecision } from '../agents/OrchestratorAgent.js';
 import { InteractiveOrchestratorAgent, PlanExecutionEvent, StreamingResponse } from '../agents/InteractiveOrchestratorAgent.js';
+import { ManifestParser } from '../utils/ManifestParser.js';
+import { Agent as AgentClass } from '../agents/Agent.js';
 
 export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private config: SmallTalkConfig;
@@ -165,6 +171,117 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
 
   public getAgents(): Agent[] {
     return Array.from(this.agents.values());
+  }
+
+  /**
+   * Add agent from manifest file (YAML or JSON)
+   */
+  public async addAgentFromFile(filePath: string): Promise<Agent> {
+    try {
+      const parser = new ManifestParser();
+      const manifest = parser.parseManifestFile(filePath);
+      
+      // Create agent from manifest config
+      const agent = new AgentClass(manifest.config);
+      
+      // Add agent with capabilities if provided
+      this.addAgent(agent, manifest.capabilities);
+      
+      this.emit('agent_loaded_from_file', { 
+        filePath, 
+        agentName: agent.name, 
+        manifest 
+      });
+      
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] Agent '${agent.name}' loaded from manifest: ${filePath}`);
+      }
+      
+      return agent;
+    } catch (error) {
+      const errorMessage = `Failed to load agent from file ${filePath}: ${error instanceof Error ? error.message : String(error)}`;
+      
+      if (this.config.debugMode) {
+        console.error(`[SmallTalk] ${errorMessage}`);
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Load all agents from a directory containing manifest files
+   */
+  public async loadAgentsFromDirectory(dirPath: string, pattern?: RegExp): Promise<Agent[]> {
+    const defaultPattern = /\.(yaml|yml|json)$/i;
+    const filePattern = pattern || defaultPattern;
+    const loadedAgents: Agent[] = [];
+    const errors: string[] = [];
+    
+    try {
+      const files = readdirSync(dirPath);
+      const manifestFiles = files.filter(file => {
+        const fullPath = join(dirPath, file);
+        return statSync(fullPath).isFile() && filePattern.test(file);
+      });
+      
+      if (manifestFiles.length === 0) {
+        if (this.config.debugMode) {
+          console.log(`[SmallTalk] No manifest files found in directory: ${dirPath}`);
+        }
+        return loadedAgents;
+      }
+      
+      // Load each manifest file
+      for (const file of manifestFiles) {
+        try {
+          const filePath = join(dirPath, file);
+          const agent = await this.addAgentFromFile(filePath);
+          loadedAgents.push(agent);
+        } catch (error) {
+          const errorMessage = `Failed to load ${file}: ${error instanceof Error ? error.message : String(error)}`;
+          errors.push(errorMessage);
+          
+          if (this.config.debugMode) {
+            console.error(`[SmallTalk] ${errorMessage}`);
+          }
+        }
+      }
+      
+      this.emit('agents_loaded_from_directory', { 
+        dirPath, 
+        loadedCount: loadedAgents.length,
+        errorCount: errors.length,
+        agentNames: loadedAgents.map(a => a.name)
+      });
+      
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] Loaded ${loadedAgents.length} agents from directory: ${dirPath}`);
+        if (errors.length > 0) {
+          console.log(`[SmallTalk] ${errors.length} files failed to load`);
+        }
+      }
+      
+      // If there were errors but some agents loaded successfully, log the errors but don't throw
+      if (errors.length > 0 && loadedAgents.length === 0) {
+        throw new Error(`Failed to load any agents from directory ${dirPath}:\n${errors.join('\n')}`);
+      }
+      
+      return loadedAgents;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('ENOENT')) {
+        throw new Error(`Directory not found: ${dirPath}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Create agent manifest template file
+   */
+  public static createAgentManifestTemplate(agentName: string, format: 'yaml' | 'json' = 'yaml'): string {
+    const template = ManifestParser.createTemplate(agentName);
+    return format === 'yaml' ? ManifestParser.toYaml(template) : ManifestParser.toJson(template);
   }
 
   public addInterface(iface: BaseInterface): void {

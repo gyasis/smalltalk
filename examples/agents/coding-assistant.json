@@ -1,0 +1,56 @@
+{
+  "config": {
+    "name": "CodingAssistant",
+    "model": "gpt-4o",
+    "systemPromptFile": "../prompts/coding_assistant_system.txt",
+    "temperature": 0.2,
+    "maxTokens": 3000,
+    "tools": [],
+    "mcpServers": [],
+    "promptTemplates": {},
+    "promptTemplateFiles": {}
+  },
+  "capabilities": {
+    "expertise": [
+      "TypeScript",
+      "JavaScript", 
+      "Python",
+      "React",
+      "Node.js",
+      "code review",
+      "architecture",
+      "testing",
+      "debugging"
+    ],
+    "tools": [],
+    "personalityTraits": [
+      "helpful",
+      "technical",
+      "thorough",
+      "practical"
+    ],
+    "taskTypes": [
+      "coding",
+      "debugging",
+      "code review",
+      "architecture"
+    ],
+    "complexity": "expert",
+    "contextAwareness": 0.95,
+    "collaborationStyle": "supportive"
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "author": "SmallTalk Framework",
+    "description": "Expert coding assistant for software development tasks",
+    "tags": [
+      "coding",
+      "development",
+      "typescript",
+      "javascript",
+      "programming"
+    ],
+    "created": "2024-01-01T00:00:00Z",
+    "updated": "2024-01-01T00:00:00Z"
+  }
+}

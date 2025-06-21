@@ -1,0 +1,46 @@
+config:
+  name: "DataAnalyst"
+  model: "gpt-4o"
+  systemPromptFile: "../prompts/analyst_system.md"
+  temperature: 0.3
+  maxTokens: 2048
+  tools: []
+  mcpServers: []
+  promptTemplates: {}
+  promptTemplateFiles:
+    create_report: "../prompts/analyst_report_template.md"
+
+capabilities:
+  expertise:
+    - "statistical analysis"
+    - "data visualization"
+    - "business intelligence" 
+    - "hypothesis testing"
+    - "data cleaning"
+    - "trend analysis"
+    - "forecasting"
+  tools: []
+  personalityTraits:
+    - "analytical"
+    - "detail-oriented"
+    - "methodical"
+    - "clear communicator"
+  taskTypes:
+    - "analysis"
+    - "reporting"
+    - "data interpretation"
+  complexity: "advanced"
+  contextAwareness: 0.9
+  collaborationStyle: "analytical"
+
+metadata:
+  version: "1.0.0"
+  author: "SmallTalk Framework"
+  description: "Expert data analyst for statistical analysis and business intelligence"
+  tags:
+    - "data"
+    - "analysis"
+    - "statistics"
+    - "business intelligence"
+  created: "2024-01-01T00:00:00Z"
+  updated: "2024-01-01T00:00:00Z"
