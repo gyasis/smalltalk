@@ -36,6 +36,11 @@ export abstract class BaseInterface extends EventEmitter implements IBaseInterfa
     this.interruptionHandler = callback;
   }
 
+  public displayAgentResponse?(event: any): void {
+    // Optional method for displaying agent responses during plan execution
+    // Interfaces can implement this to show individual agent outputs
+  }
+
   protected async handleIncomingMessage(content: string): Promise<string> {
     if (!this.messageHandler) {
       return 'No message handler configured';

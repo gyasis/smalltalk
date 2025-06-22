@@ -160,6 +160,38 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Console Logs Panel -->
+            <div class="sidebar-section">
+                <div class="console-header" id="consoleHeader">
+                    <h3>🖥️ Console Logs</h3>
+                    <button class="console-toggle" id="consoleToggle" title="Toggle console logs">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="console-content" id="consoleContent">
+                    <div class="console-controls">
+                        <button class="console-control-btn" id="clearConsole" title="Clear console">
+                            🗑️ Clear
+                        </button>
+                        <button class="console-control-btn" id="pauseConsole" title="Pause auto-scroll">
+                            ⏸️ Pause
+                        </button>
+                        <div class="console-status">
+                            <span class="console-count" id="consoleCount">0 logs</span>
+                        </div>
+                    </div>
+                    <div class="console-logs" id="consoleLogs">
+                        <div class="console-welcome">
+                            <span class="console-timestamp">[startup]</span>
+                            <span class="console-source">[SmallTalk]</span>
+                            <span class="console-message">Console logging initialized</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

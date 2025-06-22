@@ -60,6 +60,21 @@ class SmallTalkWebApp {
         this.orchestrationTip = document.getElementById('orchestrationTip');
         this.orchestrationFeatures = document.getElementById('orchestrationFeatures');
         this.orchestrationCommands = document.getElementById('orchestrationCommands');
+        
+        // Console elements
+        this.consoleHeader = document.getElementById('consoleHeader');
+        this.consoleToggle = document.getElementById('consoleToggle');
+        this.consoleContent = document.getElementById('consoleContent');
+        this.consoleLogs = document.getElementById('consoleLogs');
+        this.clearConsoleBtn = document.getElementById('clearConsole');
+        this.pauseConsoleBtn = document.getElementById('pauseConsole');
+        this.consoleCount = document.getElementById('consoleCount');
+        
+        // Console state
+        this.consoleCollapsed = false;
+        this.consolePaused = false;
+        this.consoleLogCount = 0;
+        this.maxConsoleLogs = 500;
     }
 
     initializeSocket() {
@@ -135,6 +150,11 @@ class SmallTalkWebApp {
         this.socket.on('interruption_sent', (data) => {
             this.addSystemMessage(`\u26a1 Plan interrupted: ${data.message}`, 'warning');
         });
+        
+        // Console log listener
+        this.socket.on('console_log', (data) => {
+            this.addConsoleLog(data.timestamp, data.source, data.message, data.level);
+        });
     }
 
     setupEventListeners() {
@@ -171,6 +191,15 @@ class SmallTalkWebApp {
         if (this.interruptBtn) {
             this.interruptBtn.addEventListener('click', () => this.interruptActivePlan());
         }
+
+        // Console controls
+        this.consoleHeader.addEventListener('click', () => this.toggleConsole());
+        this.consoleToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleConsole();
+        });
+        this.clearConsoleBtn.addEventListener('click', () => this.clearConsole());
+        this.pauseConsoleBtn.addEventListener('click', () => this.toggleConsolePause());
 
         // Modal
         this.closeModalBtn.addEventListener('click', () => this.hideModal());
@@ -793,6 +822,102 @@ class SmallTalkWebApp {
         if (this.plansExecutedEl) {
             this.plansExecutedEl.textContent = this.plansExecuted;
         }
+    }
+
+    // Console Methods
+    toggleConsole() {
+        this.consoleCollapsed = !this.consoleCollapsed;
+        
+        if (this.consoleCollapsed) {
+            this.consoleContent.classList.add('collapsed');
+            this.consoleToggle.classList.add('collapsed');
+        } else {
+            this.consoleContent.classList.remove('collapsed');
+            this.consoleToggle.classList.remove('collapsed');
+        }
+    }
+
+    toggleConsolePause() {
+        this.consolePaused = !this.consolePaused;
+        
+        if (this.consolePaused) {
+            this.pauseConsoleBtn.classList.add('active');
+            this.pauseConsoleBtn.innerHTML = '▶️ Resume';
+            this.pauseConsoleBtn.title = 'Resume auto-scroll';
+        } else {
+            this.pauseConsoleBtn.classList.remove('active');
+            this.pauseConsoleBtn.innerHTML = '⏸️ Pause';
+            this.pauseConsoleBtn.title = 'Pause auto-scroll';
+            // Auto-scroll to bottom when resumed
+            this.scrollConsoleToBottom();
+        }
+    }
+
+    clearConsole() {
+        // Keep the welcome message
+        this.consoleLogs.innerHTML = `
+            <div class="console-welcome">
+                <span class="console-timestamp">[${new Date().toLocaleTimeString()}]</span>
+                <span class="console-source">[SmallTalk]</span>
+                <span class="console-message">Console cleared</span>
+            </div>
+        `;
+        this.consoleLogCount = 0;
+        this.updateConsoleCount();
+    }
+
+    addConsoleLog(timestamp, source, message, level = 'info') {
+        if (this.consolePaused) return;
+
+        // Limit console logs to prevent memory issues
+        if (this.consoleLogCount >= this.maxConsoleLogs) {
+            const oldEntries = this.consoleLogs.querySelectorAll('.console-log-entry');
+            if (oldEntries.length > 10) {
+                // Remove oldest entries, keep recent ones
+                for (let i = 0; i < 10; i++) {
+                    if (oldEntries[i]) {
+                        oldEntries[i].remove();
+                        this.consoleLogCount--;
+                    }
+                }
+            }
+        }
+
+        const logEntry = document.createElement('div');
+        logEntry.className = `console-log-entry level-${level}`;
+        
+        logEntry.innerHTML = `
+            <span class="console-timestamp">[${timestamp}]</span>
+            <span class="console-source">[${source}]</span>
+            <span class="console-message">${this.escapeHtml(message)}</span>
+        `;
+
+        this.consoleLogs.appendChild(logEntry);
+        this.consoleLogCount++;
+        this.updateConsoleCount();
+        
+        // Auto-scroll to bottom if not paused
+        if (!this.consolePaused) {
+            this.scrollConsoleToBottom();
+        }
+    }
+
+    scrollConsoleToBottom() {
+        if (this.consoleLogs) {
+            this.consoleLogs.scrollTop = this.consoleLogs.scrollHeight;
+        }
+    }
+
+    updateConsoleCount() {
+        if (this.consoleCount) {
+            this.consoleCount.textContent = `${this.consoleLogCount} logs`;
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

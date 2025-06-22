@@ -43,6 +43,12 @@ export interface NotificationMessage {
 export class WebChatInterface extends WebInterface {
   private chatConfig: WebChatConfig;
   private streamingEnabled: boolean;
+  private originalConsole: {
+    log: typeof console.log;
+    error: typeof console.error;
+    warn: typeof console.warn;
+    info: typeof console.info;
+  };
 
   constructor(config: WebChatConfig = { type: 'web' }) {
     const chatConfig = {
@@ -60,6 +66,14 @@ export class WebChatInterface extends WebInterface {
     // Enable streaming and interruption support if orchestration is enabled
     this.supportStreaming = this.streamingEnabled;
     this.supportInterruption = this.streamingEnabled;
+    
+    // Store original console methods
+    this.originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn,
+      info: console.info
+    };
   }
 
   protected setupExpress(): void {
@@ -121,6 +135,9 @@ export class WebChatInterface extends WebInterface {
 
   public async start(): Promise<void> {
     await super.start();
+    
+    // Set up console interception for playground mode
+    this.setupConsoleInterception();
     
     if (this.chatConfig?.enableChatUI) {
       const mode = this.chatConfig?.orchestrationMode ? 'with Interactive Orchestration' : 'Simple Mode';
@@ -240,5 +257,88 @@ export class WebChatInterface extends WebInterface {
         });
       });
     }
+  }
+
+  // Console Interception Methods
+  private setupConsoleInterception(): void {
+    const self = this;
+    
+    // Intercept console.log
+    console.log = (...args: any[]) => {
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      
+      self.originalConsole.log(...args);
+      self.broadcastConsoleLog(new Date().toISOString(), 'Console', message, 'info');
+    };
+
+    // Intercept console.error
+    console.error = (...args: any[]) => {
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      
+      self.originalConsole.error(...args);
+      self.broadcastConsoleLog(new Date().toISOString(), 'Console', message, 'error');
+    };
+
+    // Intercept console.warn
+    console.warn = (...args: any[]) => {
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      
+      self.originalConsole.warn(...args);
+      self.broadcastConsoleLog(new Date().toISOString(), 'Console', message, 'warn');
+    };
+
+    // Intercept console.info
+    console.info = (...args: any[]) => {
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      
+      self.originalConsole.info(...args);
+      self.broadcastConsoleLog(new Date().toISOString(), 'Console', message, 'info');
+    };
+  }
+
+  private broadcastConsoleLog(timestamp: string, source: string, message: string, level: string): void {
+    this.io.emit('console_log', {
+      timestamp,
+      source,
+      message,
+      level
+    });
+  }
+
+  private restoreConsole(): void {
+    console.log = this.originalConsole.log;
+    console.error = this.originalConsole.error;
+    console.warn = this.originalConsole.warn;
+    console.info = this.originalConsole.info;
+  }
+
+  public displayAgentResponse(event: any): void {
+    // Display individual agent responses during plan execution in the web UI
+    if (event.type === 'agent_response' && event.response) {
+      const message: ChatMessage = {
+        id: `plan-${event.planId}-step-${event.stepId}`,
+        role: 'assistant',
+        content: event.response,
+        timestamp: new Date(),
+        agentName: event.agentName || 'Agent'
+      };
+      
+      // Broadcast to all connected clients
+      this.io.emit('message_response', message);
+    }
+  }
+
+  public async stop(): Promise<void> {
+    // Restore original console methods before stopping
+    this.restoreConsole();
+    await super.stop();
   }
 }

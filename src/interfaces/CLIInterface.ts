@@ -343,4 +343,16 @@ export class CLIInterface extends BaseInterface {
         break;
     }
   }
+
+  public displayAgentResponse(event: any): void {
+    // Display individual agent responses during plan execution
+    if (event.type === 'agent_response' && event.response) {
+      const agentName = event.agentName || 'Agent';
+      const timestamp = this.cliConfig.showTimestamps ? 
+        chalk.gray(`[${new Date().toLocaleTimeString()}] `) : '';
+      
+      // Display the agent response with proper formatting
+      console.log(`\n${timestamp}🤖 ${chalk.green(agentName)}: ${event.response}`);
+    }
+  }
 }

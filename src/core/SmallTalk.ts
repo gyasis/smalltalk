@@ -100,6 +100,16 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
       }
     });
 
+    this.orchestrator.on('agent_response', (event: any) => {
+      // Forward agent responses to interfaces for immediate display
+      this.interfaces.forEach(iface => {
+        if (typeof (iface as any).displayAgentResponse === 'function') {
+          (iface as any).displayAgentResponse(event);
+        }
+      });
+      this.emit('agent_response', event);
+    });
+
     this.orchestrator.on('user_interrupted', (event: PlanExecutionEvent) => {
       this.emit('user_interrupted', event);
       if (this.config.debugMode) {
@@ -480,7 +490,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
           );
           
           if (planExecuted) {
-            return 'Plan executed successfully. All agents have completed their tasks.';
+            return ''; // Individual agent responses are already displayed
           } else {
             return 'Plan execution was paused or failed. Please provide guidance to continue.';
           }

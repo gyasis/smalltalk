@@ -570,6 +570,152 @@ code {
   font-family: monospace;
 }
 
+/* Console Logs Panel */
+.console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.console-toggle {
+  background: none;
+  border: none;
+  color: var(--body-color);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.console-toggle:hover {
+  background-color: var(--border-light);
+}
+
+.console-toggle.collapsed {
+  transform: rotate(-90deg);
+}
+
+.console-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--shadow-light);
+  margin-top: 1rem;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 300px;
+  opacity: 1;
+}
+
+.console-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+.console-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background-color: var(--markdown-bg);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.console-control-btn {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.console-control-btn:hover {
+  background-color: var(--border-light);
+}
+
+.console-control-btn.active {
+  background-color: var(--primary-blue);
+  color: white;
+  border-color: var(--primary-blue);
+}
+
+.console-status {
+  margin-left: auto;
+}
+
+.console-count {
+  font-size: 0.75rem;
+  color: var(--blockquote-color);
+}
+
+.console-logs {
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.console-log-entry {
+  padding: 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.console-log-entry:last-child {
+  border-bottom: none;
+}
+
+.console-log-entry:hover {
+  background-color: var(--border-light);
+}
+
+.console-welcome {
+  padding: 0.5rem 0.75rem;
+  color: var(--blockquote-color);
+  font-style: italic;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.console-timestamp {
+  color: var(--blockquote-color);
+  margin-right: 0.5rem;
+}
+
+.console-source {
+  color: var(--primary-blue);
+  margin-right: 0.5rem;
+  font-weight: 500;
+}
+
+.console-message {
+  color: var(--body-color);
+}
+
+.console-log-entry.level-error .console-message {
+  color: #dc3545;
+}
+
+.console-log-entry.level-warn .console-message {
+  color: #ffc107;
+}
+
+.console-log-entry.level-info .console-message {
+  color: var(--primary-blue);
+}
+
+.console-log-entry.level-debug .console-message {
+  color: var(--blockquote-color);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .app-container {

@@ -296,6 +296,16 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
         planId
       });
 
+      // Emit agent response for immediate display
+      this.emit('agent_response', {
+        type: 'agent_response',
+        planId,
+        stepId: step.id,
+        agentName: step.agentName,
+        response: response,
+        timestamp: new Date()
+      });
+
       this.emit('step_completed', {
         type: 'step_completed',
         planId,
