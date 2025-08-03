@@ -35,6 +35,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private orchestrationEnabled = true;
   private streamingEnabled = false;
   private interruptionEnabled = false;
+  private lastAnalysisResponse: string | null = null;
 
   constructor(config: SmallTalkConfig = {}) {
     super();
@@ -108,6 +109,12 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
         }
       });
       this.emit('agent_response', event);
+    });
+
+    this.orchestrator.on('analysis_response', (event: any) => {
+      // Store the analysis response to return to user
+      this.lastAnalysisResponse = event.response;
+      this.emit('analysis_response', event);
     });
 
     this.orchestrator.on('user_interrupted', (event: PlanExecutionEvent) => {
@@ -490,7 +497,10 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
           );
           
           if (planExecuted) {
-            return ''; // Individual agent responses are already displayed
+            // Return the intelligent analysis response if available
+            const response = this.lastAnalysisResponse || '✅ Plan completed successfully.';
+            this.lastAnalysisResponse = null; // Clear for next plan
+            return response;
           } else {
             return 'Plan execution was paused or failed. Please provide guidance to continue.';
           }

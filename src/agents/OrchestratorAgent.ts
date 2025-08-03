@@ -541,8 +541,8 @@ export class OrchestratorAgent extends Agent {
     return 1 - Math.abs(agentScore - taskComplexity);
   }
 
-  private calculateToolMatch(agentTools: string[], intent: string, topic: string): number {
-    if (agentTools.length === 0) return 0.5; // Neutral if no tools
+  private calculateToolMatch(agentTools: string[] | undefined, intent: string, topic: string): number {
+    if (!agentTools || agentTools.length === 0) return 0.5; // Neutral if no tools
     
     let match = 0;
     const searchTerms = [intent, topic].join(' ').toLowerCase();

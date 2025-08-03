@@ -77,7 +77,7 @@ const tokenjs = new TokenJS();
 async function callLlm(prompt: string): Promise<string> {
   const completion = await tokenjs.chat.completions.create({
     provider: 'openai',  // or anthropic, gemini, etc.
-    model: 'gpt-4o',     // provider-specific model
+    model: 'gpt-4o',     # provider-specific model
     messages: [{ role: 'user', content: prompt }],
   });
   return completion.choices[0].message.content || '';
@@ -150,3 +150,183 @@ When updating the SmallTalk version in package.json, you MUST also update the co
 ```
 
 This ensures version consistency across the project files.
+
+## Memory Bank Documentation
+
+### Memory Management Philosophy
+- My memory resets completely between sessions. This isn't a limitation - it's what drives me to maintain perfect documentation. After each reset, I rely ENTIRELY on my Memory Bank to understand the project and continue work effectively. I MUST read ALL memory bank files at the start of EVERY task - this is not optional.
+
+### Memory Bank Structure
+
+The Memory Bank consists of required core files and optional context files, all in Markdown format. Files build upon each other in a clear hierarchy:
+
+```mermaid
+flowchart TD
+    PB[projectbrief.md] --> PC[productContext.md]
+    PB --> SP[systemPatterns.md]
+    PB --> TC[techContext.md]
+    
+    PC --> AC[activeContext.md]
+    SP --> AC
+    TC --> AC
+    
+    AC --> P[progress.md]
+```
+
+#### Core Files (Required)
+1. `projectbrief.md`
+   - Foundation document that shapes all other files
+   - Created at project start if it doesn't exist
+   - Defines core requirements and goals
+   - Source of truth for project scope
+
+2. `productContext.md`
+   - Why this project exists
+   - Problems it solves
+   - How it should work
+   - User experience goals
+
+3. `activeContext.md`
+   - Current work focus
+   - Recent changes
+   - Next steps
+   - Active decisions and considerations
+
+4. `systemPatterns.md`
+   - System architecture
+   - Key technical decisions
+   - Design patterns in use
+   - Component relationships
+
+5. `techContext.md`
+   - Technologies used
+   - Development setup
+   - Technical constraints
+   - Dependencies
+
+6. `progress.md`
+   - What works
+   - What's left to build
+   - Current status
+   - Known issues
+
+#### Additional Context
+Create additional files/folders within memory-bank/ when they help organize:
+- Complex feature documentation
+- Integration specifications
+- API documentation
+- Testing strategies
+- Deployment procedures
+
+### Intelligent Memory Access and Summary
+
+To optimize performance and focus on relevant context, a `memory-bank-summary.md` file should be created. This file acts as an intelligent index to the Memory Bank, allowing the model to be selective about which files to read.
+
+#### The `memory-bank-summary.md` File
+The purpose of this file is to provide a high-level overview so the LLM model does not need to read every file at all times.
+
+- **Content**: It should contain a list of all memory bank documents and a brief summary of their contents and purpose.
+- **Goal**: To enable the model to intelligently select which files are most relevant to the current task.
+
+### Reading Strategy for Long Files
+For files that track progress or accumulate information over time (e.g., `progress.md`), the model should prioritize recent history.
+
+- **Rule**: When a file is long, read the **last 200 lines** to understand the most recent changes and the current state of the project.
+
+### Core Workflows
+
+#### Plan Mode
+```mermaid
+flowchart TD
+    Start[Start] --> ReadFiles[Read Memory Bank]
+    ReadFiles --> CheckFiles{Files Complete?}
+    
+    CheckFiles -->|No| Plan[Create Plan]
+    Plan --> Document[Document in Chat]
+    
+    CheckFiles -->|Yes| Verify[Verify Context]
+    Verify --> Strategy[Develop Strategy]
+    Strategy --> Present[Present Approach]
+```
+
+#### Act Mode
+```mermaid
+flowchart TD
+    Start[Start] --> Context[Check Memory Bank]
+    Context --> Update[Update Documentation]
+    Update --> Execute[Execute Task]
+    Execute --> Document[Document Changes]
+```
+
+### Documentation Updates
+
+Memory Bank updates occur when:
+1. Discovering new project patterns
+2. After implementing significant changes
+3. When user requests with **update memory bank** (MUST review ALL files)
+4. When context needs clarification
+
+**Important:** The Memory Bank must be updated for any major or minor fixes, especially after code pushes, during debugging sessions, or for any change composed of two or more subtasks.
+
+```mermaid
+flowchart TD
+    Start[Update Process]
+    
+    subgraph Process
+        P1[Review ALL Files]
+        P2[Document Current State]
+        P3[Clarify Next Steps]
+        
+        P1 --> P2 --> P3
+    end
+    
+    Start --> Process
+```
+
+Note: When triggered by **update memory bank**, I MUST review every memory bank file, even if some don't require updates. Focus particularly on activeContext.md and progress.md as they track current state.
+
+### Project Intelligence
+
+This file is my learning journal for each project. It captures important patterns, preferences, and project intelligence that help me work more effectively. As I work with you and the project, I'll discover and document key insights that aren't obvious from the code alone.
+
+```mermaid
+flowchart TD
+    Start{Discover New Pattern}
+    
+    subgraph Learn [Learning Process]
+        D1[Identify Pattern]
+        D2[Validate with User]
+        D3[Document in this file]
+    end
+    
+    subgraph Apply [Usage]
+        A1[Read this file]
+        A2[Apply Learned Patterns]
+        A3[Improve Future Work]
+    end
+    
+    Start --> Learn
+    Learn --> Apply
+```
+
+#### What to Capture
+- Critical implementation paths
+- User preferences and workflow
+- Project-specific patterns
+- Known challenges
+- Evolution of project decisions
+- Tool usage patterns
+
+The format is flexible - focus on capturing valuable insights that help me work more effectively with you and the project. Think of this as a living document that grows smarter as we work together.
+
+### Progress Tracking Styling
+When creating or updating progress bars or task-tracking documentation, use the following UTF-8 symbols for clarity and consistency:
+
+:white_large_square: Blank, unmarked
+:white_check_mark: Marked, completed, pass, success
+:x: Issue, error, failed
+:warning: Attention, pending, warning
+:arrows_counterclockwise: Rework or revision required
+:clock3: Waiting or delayed
+:hourglass_flowing_sand: Ongoing, in process
+:no_entry_sign: Deferred or canceled

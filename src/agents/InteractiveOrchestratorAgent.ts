@@ -246,6 +246,9 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
         timestamp: new Date()
       });
 
+      // Post-execution analysis with internal deliberation
+      await this.postExecutionAnalysis(plan, sessionId, userId);
+
       return true;
     } catch (error) {
       plan.status = 'failed';
@@ -611,5 +614,422 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
       maxAutoResponses: this.maxAutoResponses,
       queueLength: this.executionQueue.length
     };
+  }
+
+  /**
+   * Post-execution analysis with internal deliberation rounds
+   * Analyzes plan execution, verifies completion, and determines next actions
+   */
+  private async postExecutionAnalysis(plan: ExecutionPlan, sessionId: string, userId: string): Promise<void> {
+    try {
+      // Step 1: Comprehensive Plan Verification
+      const planVerification = this.verifyPlanCompletion(plan);
+      
+      // Step 2: Internal Deliberation Rounds
+      const analysis = await this.conductInternalDeliberation(plan, planVerification);
+      
+      // Step 3: Decision and Response Generation
+      await this.generateIntelligentResponse(plan, analysis, sessionId, userId);
+      
+    } catch (error) {
+      console.error('[Orchestrator] Post-execution analysis failed:', error);
+      // Fallback to basic completion message
+      this.emit('analysis_response', {
+        type: 'analysis_response',
+        planId: plan.id,
+        response: '✅ Plan completed with some analysis limitations.',
+        nextAction: 'user_input_required',
+        timestamp: new Date()
+      });
+    }
+  }
+
+  /**
+   * Verify that all plan tasks were executed and each step completed successfully
+   */
+  private verifyPlanCompletion(plan: ExecutionPlan): {
+    allStepsCompleted: boolean;
+    completedSteps: number;
+    totalSteps: number;
+    failedSteps: any[];
+    stepSummaries: any[];
+  } {
+    const failedSteps = plan.steps.filter(step => step.status === 'failed');
+    const completedSteps = plan.steps.filter(step => step.status === 'completed');
+    
+    const stepSummaries = plan.steps.map(step => ({
+      id: step.id,
+      agentName: step.agentName,
+      action: step.action.substring(0, 100) + '...',
+      status: step.status,
+      output: step.output ? step.output.substring(0, 200) + '...' : 'No output',
+      executionTime: step.completedAt ? 
+        (step.completedAt.getTime() - (step.startedAt?.getTime() || 0)) : 0
+    }));
+
+    return {
+      allStepsCompleted: failedSteps.length === 0 && completedSteps.length === plan.steps.length,
+      completedSteps: completedSteps.length,
+      totalSteps: plan.steps.length,
+      failedSteps,
+      stepSummaries
+    };
+  }
+
+  /**
+   * Conduct internal deliberation rounds to analyze execution and determine next steps
+   */
+  private async conductInternalDeliberation(plan: ExecutionPlan, verification: any): Promise<any> {
+    // Internal Round 1: What did we accomplish?
+    const accomplishments = await this.analyzeAccomplishments(plan, verification);
+    
+    // Internal Round 2: Are the user's goals met?
+    const goalAssessment = await this.assessGoalCompletion(plan, accomplishments);
+    
+    // Internal Round 3: What should happen next?
+    const nextActionDecision = await this.determineNextAction(plan, goalAssessment);
+    
+    return {
+      accomplishments,
+      goalAssessment,
+      nextActionDecision,
+      verification
+    };
+  }
+
+  /**
+   * Internal Round 1: Analyze what was accomplished during plan execution
+   */
+  private async analyzeAccomplishments(plan: ExecutionPlan, verification: any): Promise<any> {
+    const prompt = `
+INTERNAL ANALYSIS - ROUND 1: ACCOMPLISHMENT REVIEW
+
+Plan Objective: ${plan.expectedOutcome}
+Original User Request: ${plan.userIntent}
+
+Execution Summary:
+- Total Steps: ${verification.totalSteps}
+- Completed Steps: ${verification.completedSteps}
+- Failed Steps: ${verification.failedSteps.length}
+
+Step-by-Step Results:
+${verification.stepSummaries.map((step: any, index: number) => 
+  `${index + 1}. ${step.agentName}: ${step.action}
+     Status: ${step.status}
+     Output: ${step.output}`
+).join('\n')}
+
+ANALYZE: What concrete accomplishments were achieved? What specific value was delivered?
+Be factual and specific. Focus on actual outcomes, not process.
+`;
+
+    try {
+      const analysis = await this.generateResponse(prompt, {
+        session: { 
+          id: 'analysis', 
+          messages: [], 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        },
+        message: { 
+          id: 'analysis-prompt', 
+          role: 'system', 
+          content: prompt, 
+          timestamp: new Date() 
+        },
+        config: {}
+      });
+      return {
+        rawAnalysis: analysis,
+        keyAccomplishments: this.extractKeyPoints(analysis),
+        deliveredValue: this.assessDeliveredValue(verification.stepSummaries)
+      };
+    } catch (error) {
+      return {
+        rawAnalysis: 'Analysis failed - using fallback assessment',
+        keyAccomplishments: verification.stepSummaries.map((s: any) => `${s.agentName} completed: ${s.action}`),
+        deliveredValue: verification.allStepsCompleted ? 'high' : 'partial'
+      };
+    }
+  }
+
+  /**
+   * Internal Round 2: Assess if user's goals were met
+   */
+  private async assessGoalCompletion(plan: ExecutionPlan, accomplishments: any): Promise<any> {
+    const prompt = `
+INTERNAL ANALYSIS - ROUND 2: GOAL COMPLETION ASSESSMENT
+
+Original User Request: "${plan.userIntent}"
+Plan Objective: "${plan.expectedOutcome}"
+
+What We Accomplished:
+${accomplishments.keyAccomplishments.join('\n')}
+
+Delivered Value Level: ${accomplishments.deliveredValue}
+
+CRITICAL ASSESSMENT:
+1. Did we fully address the user's original request?
+2. Are there gaps or missing elements?
+3. Would the user be satisfied with these results?
+4. What questions or needs might remain?
+
+Provide a direct YES/NO assessment with reasoning.
+`;
+
+    try {
+      const assessment = await this.generateResponse(prompt, {
+        session: { 
+          id: 'analysis', 
+          messages: [], 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        },
+        message: { 
+          id: 'analysis-prompt', 
+          role: 'system', 
+          content: prompt, 
+          timestamp: new Date() 
+        },
+        config: {}
+      });
+      return {
+        rawAssessment: assessment,
+        isComplete: assessment.toLowerCase().includes('yes') && !assessment.toLowerCase().includes('but'),
+        satisfactionLevel: this.assessSatisfactionLevel(assessment),
+        identifiedGaps: this.extractGaps(assessment)
+      };
+    } catch (error) {
+      return {
+        rawAssessment: 'Assessment failed - using conservative estimate',
+        isComplete: false,
+        satisfactionLevel: 'uncertain',
+        identifiedGaps: ['Unable to assess completion due to analysis error']
+      };
+    }
+  }
+
+  /**
+   * Internal Round 3: Determine what should happen next
+   */
+  private async determineNextAction(plan: ExecutionPlan, goalAssessment: any): Promise<any> {
+    const prompt = `
+INTERNAL ANALYSIS - ROUND 3: NEXT ACTION DECISION
+
+Goal Completion Status: ${goalAssessment.isComplete ? 'COMPLETE' : 'INCOMPLETE'}
+User Satisfaction Level: ${goalAssessment.satisfactionLevel}
+Identified Gaps: ${goalAssessment.identifiedGaps.join(', ')}
+
+Original Request: "${plan.userIntent}"
+
+DECISION MATRIX:
+If goals are complete and satisfaction is high: Return intelligent summary to user
+If goals are incomplete: Generate follow-up plan to address gaps
+If unclear: Return summary and ask for user guidance
+
+Based on the analysis above, what should happen next?
+Choose ONE action and explain:
+1. RETURN_SUMMARY - Provide intelligent summary and return control to user
+2. GENERATE_FOLLOWUP - Create new plan to address remaining needs
+3. ASK_GUIDANCE - Summarize and request user direction
+
+Decision: [ACTION] because [REASONING]
+`;
+
+    try {
+      const decision = await this.generateResponse(prompt, {
+        session: { 
+          id: 'analysis', 
+          messages: [], 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        },
+        message: { 
+          id: 'analysis-prompt', 
+          role: 'system', 
+          content: prompt, 
+          timestamp: new Date() 
+        },
+        config: {}
+      });
+      const action = this.extractDecision(decision);
+      
+      return {
+        rawDecision: decision,
+        chosenAction: action,
+        reasoning: this.extractReasoning(decision),
+        confidence: this.assessDecisionConfidence(decision)
+      };
+    } catch (error) {
+      return {
+        rawDecision: 'Decision failed - defaulting to summary',
+        chosenAction: 'RETURN_SUMMARY',
+        reasoning: 'Internal decision analysis failed, defaulting to safe option',
+        confidence: 'low'
+      };
+    }
+  }
+
+  /**
+   * Generate intelligent response based on analysis and emit to interfaces
+   */
+  private async generateIntelligentResponse(plan: ExecutionPlan, analysis: any, sessionId: string, userId: string): Promise<void> {
+    const { accomplishments, goalAssessment, nextActionDecision } = analysis;
+    
+    let response = '';
+    let nextAction = 'user_input_required';
+    
+    switch (nextActionDecision.chosenAction) {
+      case 'RETURN_SUMMARY':
+        response = await this.generateCompletionSummary(plan, accomplishments, goalAssessment);
+        nextAction = 'user_input_required';
+        break;
+        
+      case 'GENERATE_FOLLOWUP':
+        response = await this.generateFollowupPlan(plan, goalAssessment.identifiedGaps);
+        nextAction = 'followup_plan_generated';
+        break;
+        
+      case 'ASK_GUIDANCE':
+      default:
+        response = await this.generateGuidanceRequest(plan, accomplishments, goalAssessment);
+        nextAction = 'user_guidance_requested';
+        break;
+    }
+
+    // Emit the intelligent response
+    this.emit('analysis_response', {
+      type: 'analysis_response',
+      planId: plan.id,
+      response,
+      nextAction,
+      analysis: {
+        accomplishments: accomplishments.keyAccomplishments,
+        isComplete: goalAssessment.isComplete,
+        decision: nextActionDecision.chosenAction,
+        reasoning: nextActionDecision.reasoning
+      },
+      timestamp: new Date()
+    });
+  }
+
+  // Helper methods for analysis
+  private extractKeyPoints(analysis: string): string[] {
+    const lines = analysis.split('\n').filter(line => line.trim().length > 0);
+    return lines.slice(0, 5); // Top 5 key points
+  }
+
+  private assessDeliveredValue(stepSummaries: any[]): string {
+    const completedSteps = stepSummaries.filter(s => s.status === 'completed');
+    const ratio = completedSteps.length / stepSummaries.length;
+    return ratio >= 0.9 ? 'high' : ratio >= 0.7 ? 'medium' : 'low';
+  }
+
+  private assessSatisfactionLevel(assessment: string): string {
+    const lower = assessment.toLowerCase();
+    if (lower.includes('fully satisfied') || lower.includes('excellent')) return 'high';
+    if (lower.includes('satisfied') || lower.includes('good')) return 'medium';
+    if (lower.includes('partially') || lower.includes('gaps')) return 'low';
+    return 'uncertain';
+  }
+
+  private extractGaps(assessment: string): string[] {
+    const gapIndicators = ['missing', 'gap', 'incomplete', 'need', 'lacking', 'should'];
+    const lines = assessment.split('\n');
+    return lines.filter(line => 
+      gapIndicators.some(indicator => line.toLowerCase().includes(indicator))
+    ).slice(0, 3);
+  }
+
+  private extractDecision(decision: string): string {
+    if (decision.includes('RETURN_SUMMARY')) return 'RETURN_SUMMARY';
+    if (decision.includes('GENERATE_FOLLOWUP')) return 'GENERATE_FOLLOWUP';
+    return 'ASK_GUIDANCE';
+  }
+
+  private extractReasoning(decision: string): string {
+    const match = decision.match(/because\s+(.+)/i);
+    return match ? match[1].trim() : 'No specific reasoning provided';
+  }
+
+  private assessDecisionConfidence(decision: string): string {
+    const lower = decision.toLowerCase();
+    if (lower.includes('clearly') || lower.includes('obviously')) return 'high';
+    if (lower.includes('likely') || lower.includes('probably')) return 'medium';
+    return 'low';
+  }
+
+  private async generateCompletionSummary(plan: ExecutionPlan, accomplishments: any, goalAssessment: any): Promise<string> {
+    const prompt = `
+Generate a concise, intelligent completion summary for the user.
+
+Original Request: "${plan.userIntent}"
+Key Accomplishments: ${accomplishments.keyAccomplishments.join(', ')}
+Goal Status: ${goalAssessment.isComplete ? 'Complete' : 'Mostly Complete'}
+
+Create a summary that:
+1. Clearly states what was accomplished
+2. Highlights the main outcomes/value delivered
+3. Suggests natural next steps or asks what the user wants to do next
+
+Keep it conversational and helpful, not robotic.
+`;
+    
+    try {
+      return await this.generateResponse(prompt, {
+        session: { 
+          id: 'analysis', 
+          messages: [], 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        },
+        message: { 
+          id: 'analysis-prompt', 
+          role: 'system', 
+          content: prompt, 
+          timestamp: new Date() 
+        },
+        config: {}
+      });
+    } catch (error) {
+      return `✅ Task completed successfully. ${accomplishments.keyAccomplishments.join('. ')}. What would you like to do next?`;
+    }
+  }
+
+  private async generateFollowupPlan(plan: ExecutionPlan, gaps: string[]): Promise<string> {
+    // For now, return a message indicating follow-up is needed
+    // In the future, this could actually generate and execute a new plan
+    return `✅ Initial objectives completed. I've identified some areas that could benefit from additional attention: ${gaps.join(', ')}. Shall I create a follow-up plan to address these areas?`;
+  }
+
+  private async generateGuidanceRequest(plan: ExecutionPlan, accomplishments: any, goalAssessment: any): Promise<string> {
+    const prompt = `
+The user asked: "${plan.userIntent}"
+We accomplished: ${accomplishments.keyAccomplishments.join(', ')}
+Status: ${goalAssessment.isComplete ? 'Goals met' : 'Some gaps remain'}
+
+Generate a response that summarizes what was done and asks the user for guidance on next steps.
+Be specific about what was accomplished and what options they have.
+`;
+    
+    try {
+      return await this.generateResponse(prompt, {
+        session: { 
+          id: 'analysis', 
+          messages: [], 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        },
+        message: { 
+          id: 'analysis-prompt', 
+          role: 'system', 
+          content: prompt, 
+          timestamp: new Date() 
+        },
+        config: {}
+      });
+    } catch (error) {
+      return `✅ I've completed the requested tasks. Here's what was accomplished: ${accomplishments.keyAccomplishments.join(', ')}. What would you like to focus on next?`;
+    }
   }
 }

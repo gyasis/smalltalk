@@ -40,7 +40,11 @@
     "token.js",
     "pocketflow"
   ],
-  "author": "SmallTalk Framework",
+  "author": {
+    "name": "SmallTalk Framework",
+    "email": "support@smalltalk.dev",
+    "url": "https://github.com/gyasis"
+  },
   "license": "MIT",
   "dependencies": {
     "chalk": "^5.3.0",
@@ -100,10 +104,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/smalltalk.git"
+    "url": "https://github.com/gyasis/smalltalk.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/smalltalk/issues"
+    "url": "https://github.com/gyasis/smalltalk/issues"
   },
-  "homepage": "https://github.com/your-org/smalltalk#readme"
+  "homepage": "https://github.com/gyasis/smalltalk#readme"
 }

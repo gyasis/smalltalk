@@ -46,8 +46,12 @@ echo "OPENAI_API_KEY=your_key" > .env
 npm start
 ```
 
-### **Option 2: Build Your Own**
+### **Option 2: Install from npm**
 ```bash
+# Install globally for CLI usage
+npm install -g smalltalk
+
+# Or install locally for your project
 npm install smalltalk
 ```
 
@@ -790,9 +794,20 @@ const app = new SmallTalk({
 
 ## 🛠️ Development
 
-### **Building from Source**
+### **Installation Options**
+
+#### **From npm (Recommended)**
 ```bash
-git clone https://github.com/your-org/smalltalk.git
+# Install globally for CLI access anywhere
+npm install -g smalltalk
+
+# Or install in your project
+npm install smalltalk
+```
+
+#### **Building from Source**
+```bash
+git clone https://github.com/gyasis/smalltalk.git
 cd smalltalk
 npm install
 npm run build
