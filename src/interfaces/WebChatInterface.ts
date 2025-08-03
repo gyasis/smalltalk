@@ -151,7 +151,7 @@ export class WebChatInterface extends WebInterface {
   }
 
   public getUIUrl(): string {
-    return `http://${this.chatConfig?.host || 'localhost'}:${this.chatConfig?.port || 3000}`;
+    return `http://${this.chatConfig?.host || 'localhost'}:${this.chatConfig?.port || 3126}`;
   }
 
   // Enhanced methods for orchestration

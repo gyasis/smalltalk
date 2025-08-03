@@ -119,7 +119,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log('Available agents:', app.listAgents().join(', '));
       
       console.log('\n🔌 WebSocket Connection:');
-      console.log('   Connect to ws://localhost:3000 for real-time chat');
+      console.log('   Connect to ws://localhost:3126 for real-time chat');
       
       console.log('\n📝 WebSocket Events:');
       console.log('• Emit: "chat_message" with {message: "your message"}');

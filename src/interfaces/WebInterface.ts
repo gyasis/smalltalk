@@ -32,7 +32,7 @@ export class WebInterface extends BaseInterface {
     super(config);
     
     this.webConfig = {
-      port: 3000,
+      port: 3126,
       host: 'localhost',
       staticPath: path.join(__dirname, '../../interfaces/web'),
       enableStaticFiles: false,
