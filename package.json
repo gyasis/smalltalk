@@ -1,12 +1,12 @@
 {
-  "name": "smalltalk",
+  "name": "smalltalk-ai",
   "version": "0.2.3",
   "type": "module",
   "description": "A complete TypeScript framework for building LLM applications with agent support and MCP integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "smalltalk": "dist/cli/index.js"
+    "smalltalk-ai": "dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc",

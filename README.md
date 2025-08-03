@@ -4,7 +4,7 @@
 
 > **Think Rails for AI**: Opinionated, batteries-included, production-ready framework that lets you build sophisticated AI applications in minutes, not months.
 
-[![npm version](https://img.shields.io/npm/v/smalltalk)](https://www.npmjs.com/package/smalltalk)
+[![npm version](https://img.shields.io/npm/v/smalltalk-ai)](https://www.npmjs.com/package/smalltalk-ai)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -49,23 +49,23 @@ npm start
 ### **Option 2: Install from npm**
 ```bash
 # Install globally for CLI usage
-npm install -g smalltalk
+npm install -g smalltalk-ai
 
 # Or install locally for your project
-npm install smalltalk
+npm install smalltalk-ai
 ```
 
 ### **Option 3: Direct CLI Commands (NEW!)**
 ```bash
 # Install SmallTalk globally
-npm install -g smalltalk
+npm install -g smalltalk-ai
 
 # Run any script directly
-smalltalk examples/language-tutor.ts
-smalltalk playground examples/language-tutor.ts --port 4000
+smalltalk-ai examples/language-tutor.ts
+smalltalk-ai playground examples/language-tutor.ts --port 4000
 
 # Or locally after npm install
-npx smalltalk examples/simple-chat.ts
+npx smalltalk-ai examples/simple-chat.ts
 ```
 
 ### **🔧 Environment Setup**
@@ -84,7 +84,7 @@ export SMALLTALK_DEFAULT_MODEL=gpt-4o
 ```
 
 ```typescript
-import { SmallTalk, Agent } from 'smalltalk';
+import { SmallTalk, Agent } from 'smalltalk-ai';
 
 // Create intelligent agents
 const tutor = new Agent({
@@ -543,7 +543,7 @@ Running: examples/language-tutor.ts
 Your script must export a configured SmallTalk instance:
 
 ```typescript
-import { SmallTalk, Agent } from 'smalltalk';
+import { SmallTalk, Agent } from 'smalltalk-ai';
 
 // Create and configure your app
 const app = new SmallTalk({
@@ -799,10 +799,10 @@ const app = new SmallTalk({
 #### **From npm (Recommended)**
 ```bash
 # Install globally for CLI access anywhere
-npm install -g smalltalk
+npm install -g smalltalk-ai
 
 # Or install in your project
-npm install smalltalk
+npm install smalltalk-ai
 ```
 
 #### **Building from Source**
@@ -972,10 +972,9 @@ npm install @modelcontextprotocol/sdk
 
 ```bash
 # 30-second setup
-npx create-smalltalk my-ai-app --template=orchestrator-demo
-cd my-ai-app
+npm install -g smalltalk-ai
 echo "OPENAI_API_KEY=your_key" > .env
-npm start
+smalltalk-ai examples/orchestrator-demo.ts
 
 # Watch intelligent agent orchestration in action! 🎯
 ```
