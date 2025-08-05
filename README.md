@@ -513,6 +513,28 @@ Running: examples/simple-test.ts
 > Hello! How can I help you today?
 ```
 
+**🎯 Agent Commands (v0.2.5):**
+```bash
+# Switch to specific agents during conversation
+/agent orchestrator                    # Single-word agent names
+/agent research-assistant              # Hyphenated agent names ✨ NEW
+/agent code_reviewer                   # Underscore agent names
+/agent super-research-assistant-v2     # Multiple hyphens supported
+
+# Other CLI commands
+/help                                  # Show available commands
+/clear                                 # Clear screen
+/quit                                  # Exit application
+```
+
+**✨ Enhanced Error Messages:**
+```bash
+> /agent research
+Agent 'research' not found. Did you mean: research-assistant?
+Available agents: research-assistant, code-reviewer, orchestrator
+💡 Tip: Agent names can contain letters, numbers, hyphens (-), and underscores (_)
+```
+
 ### **🌐 Playground Mode**
 Rich web interface with real-time features:
 

@@ -76,6 +76,10 @@ program
     console.log('• CLI mode: Script must export a SmallTalk instance as default export');
     console.log('• Playground mode: Script must also export a playgroundConfig object');
     console.log();
+    console.log('Agent Commands:');
+    console.log('• /agent <name> - Switch to specific agent (supports hyphens and underscores)');
+    console.log('• Examples: /agent orchestrator, /agent research-assistant, /agent code_reviewer');
+    console.log();
     console.log('For more information, visit: https://github.com/your-org/smalltalk');
   });
 

@@ -255,11 +255,13 @@ export class CLIInterface extends BaseInterface {
     console.log(chalk.bold.yellow('\nAvailable Commands:'));
     console.log(chalk.cyan('/help') + '           - Show this help message');
     console.log(chalk.cyan('/agent <name>') + '   - Switch to a specific agent');
+    console.log(chalk.gray('                      Supports: single-word, hyphen-ated, under_scored'));
+    console.log(chalk.gray('                      Examples: /agent orchestrator, /agent research-assistant'));
     console.log(chalk.cyan('/clear') + '          - Clear the screen');
     console.log(chalk.cyan('/config') + '         - Show current configuration');
     console.log(chalk.cyan('/timestamp') + '      - Toggle timestamp display');
     console.log(chalk.cyan('/quit, /exit') + '    - Exit the application');
-    console.log(chalk.gray('─'.repeat(50)));
+    console.log(chalk.gray('─'.repeat(70)));
   }
 
   private displayConfig(): void {

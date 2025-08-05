@@ -449,7 +449,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     session.updatedAt = new Date();
 
     // Check for agent switching commands
-    const agentMatch = content.match(/^\/agent\s+(\w+)/);
+    const agentMatch = content.match(/^\/agent\s+([\w-]+)/);
     if (agentMatch) {
       const agentName = agentMatch[1];
       if (this.agents.has(agentName)) {
@@ -457,7 +457,22 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
         this.currentAgents.set(effectiveUserId, agentName);
         return `Switched to agent: ${agentName}`;
       } else {
-        return `Agent '${agentName}' not found. Available agents: ${this.listAgents().join(', ')}`;
+        const availableAgents = this.listAgents();
+        const suggestions = availableAgents.filter(name => 
+          name.toLowerCase().includes(agentName.toLowerCase()) ||
+          agentName.toLowerCase().includes(name.toLowerCase())
+        );
+        
+        let errorMessage = `Agent '${agentName}' not found.`;
+        
+        if (suggestions.length > 0) {
+          errorMessage += ` Did you mean: ${suggestions.join(', ')}?`;
+        }
+        
+        errorMessage += ` Available agents: ${availableAgents.join(', ')}`;
+        errorMessage += `\n💡 Tip: Agent names can contain letters, numbers, hyphens (-), and underscores (_)`;
+        
+        return errorMessage;
       }
     }
 
