@@ -81,11 +81,14 @@ echo
 .typings/
 
 # Root markdown files (except README.md)
-*.md
+/*.md
 !README.md
 
 # PRD and requirement documents
 prd/
+
+# Memory bank (session-specific documentation)
+memory-bank/
 
 # IDE specific
 .history/
