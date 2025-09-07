@@ -92,3 +92,8 @@ memory-bank/
 
 # IDE specific
 .history/
+
+# Sensitive project files (SECURITY CRITICAL)
+.specstory/
+claude.md
+cursor.md
