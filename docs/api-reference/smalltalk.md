@@ -25,7 +25,7 @@ interface SmallTalkConfig {
   
   // LLM Configuration  
   llmProvider?: string;           // 'openai' | 'anthropic' | 'gemini' | etc.
-  model?: string;                 // Model name (e.g., 'gpt-4o', 'claude-3-5-sonnet')
+  model?: string;                 // Model name (e.g., 'gpt-4o-mini', 'claude-3-5-sonnet')
   temperature?: number;           // 0.0 to 2.0, controls randomness
   maxTokens?: number;             // Maximum tokens per response
   
@@ -63,7 +63,7 @@ interface SmallTalkConfig {
 const app = new SmallTalk({
   agents: [professor, chatBuddy],
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   interface: 'web-chat',
   memory: {
     type: 'file',
@@ -819,7 +819,7 @@ const teacher = new Agent({
 const app = new SmallTalk({
   agents: [teacher],
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   interface: 'web-chat',
   memory: {
     type: 'file',

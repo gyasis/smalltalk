@@ -16,7 +16,7 @@ This guide explains each setup and identifies future orchestration features.
 ```typescript
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: false  // Disable orchestration
 });
 ```
@@ -53,7 +53,7 @@ export const playgroundConfig: PlaygroundConfig = {
 ```typescript
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true,  // Enable basic orchestration
   // Uses default orchestration settings
 });
@@ -94,7 +94,7 @@ app.addAgent(agent, {
 ```typescript
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true,
   
   // Advanced orchestration configuration

@@ -45,7 +45,7 @@ export const playgroundConfig: PlaygroundConfig = {
   title: 'External Prompts Demo',
 };
 
-const app = new SmallTalk({ model: 'gpt-4o' });
+const app = new SmallTalk({ model: 'gpt-4o-mini' });
 
 // This agent's personality is loaded from an external file.
 const analystAgent = createAgent(

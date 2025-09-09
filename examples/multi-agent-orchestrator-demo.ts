@@ -572,7 +572,7 @@ interface AgentPerformance {
 // Create the SmallTalk application with advanced orchestration
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true,
   debugMode: true
 });
@@ -676,3 +676,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await app.start();
   })();
 }
+

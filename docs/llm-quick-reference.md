@@ -16,7 +16,7 @@ const ChatComponent = ({ agents, config }) => {
   useEffect(() => {
     const st = new SmallTalk({
       llmProvider: 'openai',
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       orchestration: true
     });
     
@@ -141,7 +141,7 @@ import { SmallTalk, Agent } from 'smalltalk';
 // 1. Create framework
 const smalltalk = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true
 });
 

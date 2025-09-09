@@ -16,7 +16,7 @@ class MockTokenJSWrapper {
   constructor(config: SmallTalkConfig) {
     this.config = {
       llmProvider: 'openai',
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       temperature: 0.7,
       maxTokens: 2048,
       ...config
@@ -25,7 +25,7 @@ class MockTokenJSWrapper {
 
   async generateResponse(messages: ChatMessage[], options: any = {}) {
     const provider = options.provider || this.config.llmProvider || 'openai';
-    const model = options.model || this.config.model || 'gpt-4o';
+    const model = options.model || this.config.model || 'gpt-4o-mini';
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
 
     // Simulate API call
@@ -84,7 +84,7 @@ class MockTokenJSWrapper {
 
   getProviderModels(provider: string) {
     const models: Record<string, string[]> = {
-      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+      openai: ['gpt-4o-mini', 'gpt-4o-mini', 'gpt-4-turbo'],
       anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
       default: []
     };
@@ -146,7 +146,7 @@ describe('TokenJSWrapper - Core Functionality', () => {
     
     wrapper = new MockTokenJSWrapper({
       llmProvider: 'openai',
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       temperature: 0.7,
       maxTokens: 2048
     });
@@ -204,7 +204,7 @@ describe('TokenJSWrapper - Core Functionality', () => {
 
       expect(mockTokenJSInstance.chat.completions.create).toHaveBeenCalledWith({
         provider: 'openai',
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: 'Hello, how are you?' }],
         temperature: 0.7,
         max_tokens: 2048
@@ -296,7 +296,7 @@ describe('TokenJSWrapper - Core Functionality', () => {
 
     it('should return provider models', () => {
       const openaiModels = wrapper.getProviderModels('openai');
-      expect(openaiModels).toContain('gpt-4o');
+      expect(openaiModels).toContain('gpt-4o-mini');
       expect(openaiModels).toContain('gpt-4o-mini');
 
       const unknownModels = wrapper.getProviderModels('unknown');

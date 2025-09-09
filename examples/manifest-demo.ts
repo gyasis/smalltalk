@@ -5,7 +5,7 @@ async function createManifestDemo() {
   // Example demonstrating the new manifest-based agent configuration
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     debugMode: true,
     orchestration: true
   });

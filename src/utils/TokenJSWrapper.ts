@@ -38,7 +38,7 @@ export class TokenJSWrapper {
     options: LLMOptions = {}
   ): Promise<LLMResponse> {
     const provider = options.provider || this.config.llmProvider || 'openai';
-    const model = options.model || this.config.model || 'gpt-4o';
+    const model = options.model || this.config.model || 'gpt-4o-mini';
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
     const maxTokens = options.maxTokens || this.config.maxTokens || 2048;
 
@@ -102,7 +102,7 @@ export class TokenJSWrapper {
     onChunk?: (chunk: string) => void
   ): Promise<string> {
     const provider = options.provider || this.config.llmProvider || 'openai';
-    const model = options.model || this.config.model || 'gpt-4o';
+    const model = options.model || this.config.model || 'gpt-4o-mini';
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
     const maxTokens = options.maxTokens || this.config.maxTokens || 2048;
 
@@ -275,14 +275,14 @@ export class TokenJSWrapper {
     // This would ideally come from Token.js itself
     // For now, providing common models for each provider
     const providerModels: Record<string, string[]> = {
-      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+      openai: ['gpt-4o-mini', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
       anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'],
       gemini: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.0-pro'],
       cohere: ['command-r-plus', 'command-r', 'command'],
       mistral: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'],
       groq: ['llama3-8b-8192', 'llama3-70b-8192', 'mixtral-8x7b-32768'],
       perplexity: ['llama-3.1-sonar-small-128k-online', 'llama-3.1-sonar-large-128k-online'],
-      openrouter: ['openai/gpt-4o', 'anthropic/claude-3-5-sonnet', 'meta-llama/llama-3.1-8b-instruct'],
+      openrouter: ['openai/gpt-4o-mini', 'anthropic/claude-3-5-sonnet', 'meta-llama/llama-3.1-8b-instruct'],
       bedrock: ['anthropic.claude-3-sonnet-20240229-v1:0', 'anthropic.claude-3-haiku-20240307-v1:0'],
       ai21: ['jamba-instruct', 'j2-ultra', 'j2-mid']
     };
@@ -316,7 +316,7 @@ export class TokenJSWrapper {
     schema?: Record<string, unknown>
   ): Promise<any> {
     const provider = options.provider || this.config.llmProvider || 'openai';
-    const model = options.model || this.config.model || 'gpt-4o';
+    const model = options.model || this.config.model || 'gpt-4o-mini';
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
     const maxTokens = options.maxTokens || this.config.maxTokens || 2048;
 
@@ -354,7 +354,7 @@ export class TokenJSWrapper {
     options: LLMOptions = {}
   ): Promise<LLMResponse> {
     const provider = options.provider || this.config.llmProvider || 'openai';
-    const model = options.model || this.config.model || 'gpt-4o';
+    const model = options.model || this.config.model || 'gpt-4o-mini';
     const temperature = options.temperature ?? this.config.temperature ?? 0.7;
     const maxTokens = options.maxTokens || this.config.maxTokens || 2048;
 
@@ -541,7 +541,6 @@ export class TokenJSWrapper {
     // This would ideally come from Token.js model registry
     // For now, providing common model info
     const modelInfo: Record<string, any> = {
-      'gpt-4o': { contextLength: 128000, inputCostPer1k: 0.005, outputCostPer1k: 0.015 },
       'gpt-4o-mini': { contextLength: 128000, inputCostPer1k: 0.00015, outputCostPer1k: 0.0006 },
       'claude-3-5-sonnet-20241022': { contextLength: 200000, inputCostPer1k: 0.003, outputCostPer1k: 0.015 },
       'claude-3-5-haiku-20241022': { contextLength: 200000, inputCostPer1k: 0.0008, outputCostPer1k: 0.004 },

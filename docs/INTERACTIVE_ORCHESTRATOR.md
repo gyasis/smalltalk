@@ -46,7 +46,7 @@ import { CLIInterface } from 'smalltalk/interfaces';
 
 const smalltalk = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true,
   orchestrationConfig: {
     maxAutoResponses: 10,
@@ -149,7 +149,7 @@ historyManagement: {
   slidingWindowSize: 20,       // Size of recent message window
   summaryInterval: 10,         // How often to update summary
   contextSize: 4000,           // Target context size in tokens
-  summaryModel: 'gpt-4o-mini'  // Model for summarization
+  summaryModel: 'gpt-4o-mini-mini'  // Model for summarization
 }
 ```
 

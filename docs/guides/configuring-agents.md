@@ -57,7 +57,7 @@ const analystAgent = createAgent(
   'AnalystAgent',
   'I am an expert data analyst for complex tasks.',
   {
-    model: 'gpt-4o', // Override the default model
+    model: 'gpt-4o-mini', // Override the default model
     temperature: 0.2,
   }
 );
@@ -67,7 +67,7 @@ app.addAgent(analystAgent);
 
 export default app;
 ```
-When `analystAgent` is asked to generate a response, it will use `gpt-4o`. When `routerAgent` is asked, it will use `gpt-3.5-turbo`.
+When `analystAgent` is asked to generate a response, it will use `gpt-4o-mini`. When `routerAgent` is asked, it will use `gpt-3.5-turbo`.
 
 ---
 
@@ -104,12 +104,12 @@ const gatekeeper = createAgent(
 );
 
 // 3. Create a "DeepThinker" agent with a powerful model.
-// We override the model to use 'gpt-4o' for complex tasks.
+// We override the model to use 'gpt-4o-mini' for complex tasks.
 const deepThinker = createAgent(
   'DeepThinker',
   'You are a powerful, creative, and analytical AI that handles complex user requests with deep thought and detailed explanations.',
   {
-    model: 'gpt-4o', // Use a more powerful model for this agent
+    model: 'gpt-4o-mini', // Use a more powerful model for this agent
     temperature: 0.5,
   }
 );
@@ -141,6 +141,6 @@ smalltalk playground ./examples/multi-model-demo.ts
 ### Best Practices & Use Cases
 
 *   **Cost Management:** Use cheaper models like `gpt-3.5-turbo` or smaller open models for routine tasks such as simple chat, data extraction, or routing. This can significantly reduce operational costs.
-*   **Performance Optimization:** For tasks that require complex reasoning, deep analysis, or high-quality content generation (e.g., writing code, analyzing a legal document), assign a state-of-the-art model like `gpt-4o` or `claude-3-opus`.
+*   **Performance Optimization:** For tasks that require complex reasoning, deep analysis, or high-quality content generation (e.g., writing code, analyzing a legal document), assign a state-of-the-art model like `gpt-4o-mini` or `claude-3-opus`.
 *   **Speed:** For user-facing interactions where response time is critical, a smaller, faster model might provide a better user experience than a larger, slower one.
 *   **Specialized Agents:** Some models excel at specific tasks. You might have one agent using a model fine-tuned for function calling, and another using a model known for its creative writing abilities. 

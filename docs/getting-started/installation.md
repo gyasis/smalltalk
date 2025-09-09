@@ -122,7 +122,7 @@ GEMINI_API_KEY=your_gemini_key
 
 # SmallTalk Configuration
 SMALLTALK_DEFAULT_PROVIDER=openai
-SMALLTALK_DEFAULT_MODEL=gpt-4o
+SMALLTALK_DEFAULT_MODEL=gpt-4o-mini
 SMALLTALK_DEBUG=true
 
 # Optional: Interface Configuration
@@ -137,7 +137,7 @@ Create `smalltalk.config.js` for advanced settings:
 export default {
   // LLM Settings
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   temperature: 0.7,
   maxTokens: 2048,
 

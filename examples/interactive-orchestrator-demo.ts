@@ -70,7 +70,7 @@ async function runInteractiveOrchestratorDemo() {
   // Initialize SmallTalk with advanced configuration
   const smalltalk = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     temperature: 0.7,
     debugMode: true,
     orchestration: true,
@@ -217,7 +217,7 @@ export const playgroundConfig: PlaygroundConfig = {
 async function initializeApp() {
   const smalltalk = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     temperature: 0.7,
     debugMode: true,
     orchestration: true,

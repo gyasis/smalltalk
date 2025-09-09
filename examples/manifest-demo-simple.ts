@@ -4,7 +4,7 @@ import { PlaygroundConfig } from '../src/types/index.js';
 // Simple manifest demo without top-level await for CLI compatibility
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   debugMode: true,
   orchestration: true
 });
@@ -50,7 +50,7 @@ export const playgroundConfig: PlaygroundConfig = {
 async function initializeApp() {
   const smalltalk = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     debugMode: true,
     orchestration: true
   });

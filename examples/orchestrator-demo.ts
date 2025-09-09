@@ -230,7 +230,7 @@ async function createOrchestratorDemo() {
   // Create SmallTalk instance with orchestration enabled
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     orchestration: true,
     debugMode: true
   });

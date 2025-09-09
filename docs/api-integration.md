@@ -19,7 +19,7 @@ import { SmallTalk, WebInterface } from 'smalltalk-ai';
 
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true
 });
 
@@ -302,7 +302,7 @@ const port = 3001;
 // Create SmallTalk instance
 const smalltalk = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o'
+  model: 'gpt-4o-mini'
 });
 
 // Add agents
@@ -610,7 +610,7 @@ ANTHROPIC_API_KEY=your_anthropic_key
 
 # SmallTalk Configuration  
 SMALLTALK_DEFAULT_PROVIDER=openai
-SMALLTALK_DEFAULT_MODEL=gpt-4o
+SMALLTALK_DEFAULT_MODEL=gpt-4o-mini
 SMALLTALK_API_KEY=your_custom_api_key
 
 # Server Configuration

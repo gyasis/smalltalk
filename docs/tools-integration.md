@@ -483,7 +483,7 @@ async function createToolEnabledApp() {
   // Create SmallTalk instance
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     orchestration: true
   });
 

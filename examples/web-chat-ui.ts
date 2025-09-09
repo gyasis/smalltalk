@@ -25,7 +25,7 @@ async function main() {
   // Create the SmallTalk framework with enhanced configuration
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     debugMode: true,
     orchestration: useOrchestration,
     orchestrationConfig: {
@@ -277,7 +277,7 @@ async function initializeApp() {
 
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     debugMode: true,
     orchestration: useOrchestration,
     orchestrationConfig: {

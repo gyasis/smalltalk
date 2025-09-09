@@ -194,7 +194,7 @@ export class OrchestratorAgent extends Agent {
   }
 
   // Analyze user intent using NLP and context
-  private async analyzeUserIntent(params: Record<string, unknown>): Promise<{
+  protected async analyzeUserIntent(params: Record<string, unknown>): Promise<{
     primaryIntent: string;
     secondaryIntents: string[];
     topic: string;
@@ -226,50 +226,107 @@ export class OrchestratorAgent extends Agent {
     };
   }
 
-  // Select the best agent based on requirements
-  private async selectBestAgent(params: Record<string, unknown>): Promise<{
+  // Select the best agent using sophisticated orchestration intelligence
+  protected async selectBestAgent(params: Record<string, unknown>): Promise<{
     agentName: string;
     reason: string;
     confidence: number;
     fallback?: string;
+    collaborationPlan?: {
+      sequence: Array<{agent: string; role: string; objective: string}>;
+      expectedFlow: string;
+    };
   }> {
-    const { intent, complexity, topic, urgency } = params as {
+    const { intent, complexity, topic, urgency, originalMessage, userId = 'default' } = params as {
       intent: string;
       complexity?: number;
       topic: string;
       urgency?: string;
+      originalMessage?: string;
+      userId?: string;
     };
+    
+    console.log(`[Orchestrator] 🧠 SOPHISTICATED ORCHESTRATION ANALYSIS STARTING...`);
+    
+    // Check for direct agent requests first (high confidence routing)
+    if (originalMessage) {
+      const directAgentRequest = this.detectDirectAgentRequest(originalMessage);
+      if (directAgentRequest) {
+        console.log(`[Orchestrator] 🎯 DIRECT AGENT REQUEST DETECTED: ${directAgentRequest}`);
+        return {
+          agentName: directAgentRequest,
+          reason: `Direct request for ${directAgentRequest} agent`,
+          confidence: 0.95
+        };
+      }
+    }
+    
+    // Get conversation context and history  
+    const conversationContext = this.getConversationContext(userId);
+    
     const availableAgents = this.getAvailableAgents();
-    let bestAgent: { name: string; score: number } | null = null;
+    
+    let bestAgent: { name: string; score: number; breakdown: any } | null = null;
     let maxScore = -1;
+    let allScores: Array<{ name: string; score: number; breakdown: any }> = [];
+    
+    console.log(`[Orchestrator] 🎯 Analyzing ${availableAgents.length} agents for query: "${topic}" (intent: "${intent}")`);
     
     for (const { name, capabilities } of availableAgents) {
       let score = 0;
+      let breakdown = {
+        expertise: 0,
+        complexity: 0,
+        taskType: 0,
+        tools: 0,
+        context: 0,
+        total: 0
+      };
       
-      // Expertise match (40% weight)
+      // Expertise match (40% weight) - Enhanced scoring
       const expertiseMatch = this.calculateExpertiseMatch(capabilities.expertise, topic, intent);
-      score += expertiseMatch * 0.4;
+      const expertiseScore = expertiseMatch * 0.4;
+      score += expertiseScore;
+      breakdown.expertise = expertiseScore;
       
       // Complexity match (25% weight)
       const complexityMatch = this.calculateComplexityMatch(capabilities.complexity, complexity || 0.5);
-      score += complexityMatch * 0.25;
+      const complexityScore = complexityMatch * 0.25;
+      score += complexityScore;
+      breakdown.complexity = complexityScore;
       
-      // Task type match (20% weight)
-      const taskTypeMatch = capabilities.taskTypes.some(type => 
-        intent.includes(type) || topic.includes(type)
-      ) ? 1 : 0;
-      score += taskTypeMatch * 0.2;
+      // Task type match (20% weight) - Enhanced matching
+      const taskTypeMatch = this.calculateTaskTypeMatch(capabilities.taskTypes, intent, topic);
+      const taskTypeScore = taskTypeMatch * 0.2;
+      score += taskTypeScore;
+      breakdown.taskType = taskTypeScore;
       
       // Tool availability (10% weight)
       const toolMatch = this.calculateToolMatch(capabilities.tools, intent, topic);
-      score += toolMatch * 0.1;
+      const toolScore = toolMatch * 0.1;
+      score += toolScore;
+      breakdown.tools = toolScore;
       
       // Context awareness (5% weight)
-      score += capabilities.contextAwareness * 0.05;
+      const contextScore = capabilities.contextAwareness * 0.05;
+      score += contextScore;
+      breakdown.context = contextScore;
+      
+      breakdown.total = score;
+      
+      // Log detailed breakdown for each agent
+      console.log(`[Orchestrator] 📊 ${name}: Total=${(score*100).toFixed(1)}% | Expertise=${(breakdown.expertise*100).toFixed(1)}% | Complexity=${(breakdown.complexity*100).toFixed(1)}% | TaskType=${(breakdown.taskType*100).toFixed(1)}% | Tools=${(breakdown.tools*100).toFixed(1)}%`);
+      
+      const matchDetails = (this as any)._lastMatchDetails || [];
+      if (matchDetails.length > 0) {
+        console.log(`[Orchestrator] 🔍 ${name} expertise matches: [${matchDetails.join(', ')}]`);
+      }
+      
+      allScores.push({ name, score, breakdown });
       
       if (score > maxScore) {
         maxScore = score;
-        bestAgent = { name, score };
+        bestAgent = { name, score, breakdown };
       }
     }
     
@@ -277,12 +334,26 @@ export class OrchestratorAgent extends Agent {
       throw new Error('No suitable agent found');
     }
     
+    // Show top 3 candidates for transparency
+    const topCandidates = allScores
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+      
+    console.log(`[Orchestrator] 🏆 Top candidates:`);
+    topCandidates.forEach((candidate, index) => {
+      const rank = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+      console.log(`[Orchestrator] ${rank} ${candidate.name}: ${(candidate.score*100).toFixed(1)}% confidence`);
+    });
+    
     const fallbackAgent = this.findFallbackAgent(bestAgent.name);
+    
+    // Normalize confidence to a more realistic range (30-95%)
+    const normalizedConfidence = 0.3 + (maxScore * 0.65);
 
     const result: { agentName: string; reason: string; confidence: number; fallback?: string } = {
       agentName: bestAgent.name,
-      reason: this.generateSelectionReason(bestAgent.name, maxScore, intent, topic),
-      confidence: maxScore,
+      reason: this.generateEnhancedSelectionReason(bestAgent.name, normalizedConfidence, intent, topic, bestAgent.breakdown),
+      confidence: normalizedConfidence,
     };
     if (fallbackAgent) {
       result.fallback = fallbackAgent;
@@ -290,8 +361,40 @@ export class OrchestratorAgent extends Agent {
     return result;
   }
 
+  private calculateTaskTypeMatch(agentTaskTypes: string[], intent: string, topic: string): number {
+    let match = 0;
+    const searchText = `${intent} ${topic}`.toLowerCase();
+    
+    // Enhanced task type matching
+    const taskTypeKeywords = {
+      'strategy': ['strategy', 'strategic', 'planning', 'vision', 'direction', 'leadership'],
+      'technical': ['technical', 'tech', 'development', 'architecture', 'implementation'],
+      'creative': ['creative', 'design', 'content', 'writing', 'innovative', 'brainstorm'],
+      'analysis': ['analysis', 'analyze', 'research', 'data', 'insights', 'evaluation'],
+      'sales': ['sales', 'selling', 'revenue', 'customer', 'leads', 'conversion'],
+      'marketing': ['marketing', 'branding', 'promotion', 'advertising', 'campaign'],
+      'financial': ['financial', 'budget', 'cost', 'roi', 'investment', 'money'],
+      'planning': ['planning', 'project', 'timeline', 'coordination', 'management'],
+      'conversation': ['chat', 'talk', 'discuss', 'conversation', 'general'],
+      'problem': ['problem', 'issue', 'fix', 'solve', 'troubleshoot', 'debug']
+    };
+    
+    for (const taskType of agentTaskTypes) {
+      const keywords = taskTypeKeywords[taskType.toLowerCase()] || [taskType.toLowerCase()];
+      
+      // Check for keyword matches in search text
+      const matchCount = keywords.filter(keyword => searchText.includes(keyword)).length;
+      
+      if (matchCount > 0) {
+        match += (matchCount / keywords.length); // Partial match based on keyword coverage
+      }
+    }
+    
+    return Math.min(match, 1.0);
+  }
+
   // Create a detailed handoff plan
-  private async createHandoffPlan(params: Record<string, unknown>): Promise<HandoffDecision> {
+  protected async createHandoffPlan(params: Record<string, unknown>): Promise<HandoffDecision> {
     const { targetAgent, context, reason } = params as {
       targetAgent: string;
       context: Record<string, any>;
@@ -467,6 +570,28 @@ export class OrchestratorAgent extends Agent {
 
   private identifyRequiredExpertise(message: string, topic: string): string[] {
     const expertise: string[] = [];
+    const lowerMessage = message.toLowerCase();
+    
+    // Leadership/executive patterns - override topic-based matching
+    const leadershipPatterns = [
+      'what does the ceo',
+      'ceo opinion',
+      'ceo perspective',
+      'chief executive',
+      'company leader',
+      'leadership view',
+      'executive opinion',
+      'company vision',
+      'company direction'
+    ];
+    
+    for (const pattern of leadershipPatterns) {
+      if (lowerMessage.includes(pattern)) {
+        expertise.push('leadership', 'strategy', 'vision', 'executive');
+        console.log(`[Orchestrator] 🎯 Leadership expertise detected: "${pattern}"`);
+        return expertise; // Return early for leadership queries
+      }
+    }
     
     // Topic-based expertise
     const topicExpertise: Record<string, string[]> = {
@@ -502,32 +627,146 @@ export class OrchestratorAgent extends Agent {
   // Helper methods for agent selection
   private calculateExpertiseMatch(agentExpertise: string[], topic: string, intent: string): number {
     let match = 0;
+    let matchDetails: string[] = [];
     
-    // Direct topic match
-    if (agentExpertise.some(exp => exp.toLowerCase().includes(topic.toLowerCase()))) {
-      match += 0.8;
+    // Enhanced topic matching with semantic similarity
+    const topicLower = topic.toLowerCase();
+    const intentLower = intent.toLowerCase();
+    
+    // Direct expertise matches (highest weight)
+    for (const expertise of agentExpertise) {
+      const expLower = expertise.toLowerCase();
+      
+      // Exact match
+      if (expLower === topicLower || expLower === intentLower) {
+        match += 1.0;
+        matchDetails.push(`exact:${expertise}`);
+        continue;
+      }
+      
+      // Contains match  
+      if (expLower.includes(topicLower) || topicLower.includes(expLower)) {
+        match += 0.8;
+        matchDetails.push(`contains:${expertise}→${topic}`);
+        continue;
+      }
+      
+      if (expLower.includes(intentLower) || intentLower.includes(expLower)) {
+        match += 0.7;
+        matchDetails.push(`contains:${expertise}→${intent}`);
+        continue;
+      }
     }
     
-    // Intent-based match
-    if (agentExpertise.some(exp => intent.toLowerCase().includes(exp.toLowerCase()))) {
-      match += 0.6;
-    }
-    
-    // Partial matches
-    const topicWords = topic.split(/\s+/);
-    const intentWords = intent.split(/\s+/);
+    // Semantic word overlap (medium weight)
+    const topicWords = this.extractMeaningfulWords(topic);
+    const intentWords = this.extractMeaningfulWords(intent);
+    const searchWords = [...topicWords, ...intentWords];
     
     for (const expertise of agentExpertise) {
-      const expWords = expertise.toLowerCase().split(/\s+/);
+      const expWords = this.extractMeaningfulWords(expertise);
       
-      for (const word of [...topicWords, ...intentWords]) {
-        if (expWords.some(expWord => expWord.includes(word.toLowerCase()))) {
-          match += 0.1;
+      for (const searchWord of searchWords) {
+        for (const expWord of expWords) {
+          // Exact word match
+          if (searchWord === expWord) {
+            match += 0.3;
+            matchDetails.push(`word:${searchWord}`);
+          }
+          // Root word similarity (basic stemming)
+          else if (this.areSimilarWords(searchWord, expWord)) {
+            match += 0.2;
+            matchDetails.push(`similar:${searchWord}~${expWord}`);
+          }
         }
       }
     }
     
+    // Domain-specific expertise mapping
+    const domainScore = this.calculateDomainExpertiseMatch(agentExpertise, topic, intent);
+    match += domainScore;
+    
+    if (domainScore > 0) {
+      matchDetails.push(`domain:${domainScore.toFixed(2)}`);
+    }
+    
+    // Store match details for detailed logging
+    (this as any)._lastMatchDetails = matchDetails;
+    
     return Math.min(match, 1.0);
+  }
+
+  private extractMeaningfulWords(text: string): string[] {
+    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being']);
+    return text.toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(word => word.length > 2 && !stopWords.has(word));
+  }
+  
+  private areSimilarWords(word1: string, word2: string): boolean {
+    // Basic similarity checks for business terms
+    const similarities = [
+      ['tech', 'technology', 'technical'],
+      ['market', 'marketing', 'markets'],  
+      ['business', 'biz', 'commercial'],
+      ['strategy', 'strategic', 'strategies'],
+      ['finance', 'financial', 'money', 'budget'],
+      ['research', 'analysis', 'study'],
+      ['project', 'projects', 'planning'],
+      ['sales', 'selling', 'revenue'],
+      ['development', 'dev', 'build', 'create']
+    ];
+    
+    for (const group of similarities) {
+      if (group.includes(word1) && group.includes(word2)) {
+        return true;
+      }
+    }
+    
+    // Prefix matching for technical terms
+    if (word1.length > 4 && word2.length > 4) {
+      const prefix = Math.min(word1.length, word2.length, 5);
+      return word1.substring(0, prefix) === word2.substring(0, prefix);
+    }
+    
+    return false;
+  }
+  
+  private calculateDomainExpertiseMatch(agentExpertise: string[], topic: string, intent: string): number {
+    // Domain expertise mapping for business contexts
+    const domainMappings = {
+      'technology': ['technical', 'development', 'architecture', 'coding', 'systems', 'software'],
+      'marketing': ['branding', 'campaigns', 'promotion', 'advertising', 'content', 'digital'],
+      'finance': ['budget', 'cost', 'revenue', 'profit', 'investment', 'roi', 'financial'],
+      'strategy': ['planning', 'vision', 'leadership', 'direction', 'goals', 'executive'],
+      'research': ['analysis', 'data', 'insights', 'competitive', 'market', 'trends'],
+      'project': ['management', 'coordination', 'timeline', 'resources', 'planning', 'execution'],
+      'sales': ['customer', 'revenue', 'leads', 'conversion', 'pipeline', 'negotiation']
+    };
+    
+    const textToAnalyze = `${topic} ${intent}`.toLowerCase();
+    let domainScore = 0;
+    
+    for (const [domain, keywords] of Object.entries(domainMappings)) {
+      // Check if agent has expertise in this domain
+      const hasExpertise = agentExpertise.some(exp => 
+        exp.toLowerCase().includes(domain) || 
+        keywords.some(keyword => exp.toLowerCase().includes(keyword))
+      );
+      
+      if (hasExpertise) {
+        // Check if the user query relates to this domain
+        const queryRelevance = keywords.filter(keyword => 
+          textToAnalyze.includes(keyword)
+        ).length;
+        
+        if (queryRelevance > 0) {
+          domainScore += (queryRelevance / keywords.length) * 0.4; // Max 0.4 per domain
+        }
+      }
+    }
+    
+    return Math.min(domainScore, 0.6); // Cap domain bonus at 0.6
   }
 
   private calculateComplexityMatch(agentComplexity: 'basic' | 'intermediate' | 'advanced' | 'expert', taskComplexity: number): number {
@@ -573,8 +812,50 @@ export class OrchestratorAgent extends Agent {
     return `${agentName} is well-suited for ${topic} tasks (confidence: ${(score * 100).toFixed(0)}%)`;
   }
 
+  private generateEnhancedSelectionReason(
+    agentName: string, 
+    confidence: number, 
+    intent: string, 
+    topic: string, 
+    breakdown: any
+  ): string {
+    const agentData = this.agentRegistry.get(agentName);
+    if (!agentData) return `Selected ${agentName}`;
+    
+    const { capabilities } = agentData;
+    const matchedExpertise = capabilities.expertise.filter(exp => 
+      topic.toLowerCase().includes(exp.toLowerCase()) || 
+      intent.toLowerCase().includes(exp.toLowerCase())
+    );
+    
+    let reason = `🎯 Selected ${agentName} for "${topic}" task`;
+    
+    // Add expertise details
+    if (matchedExpertise.length > 0) {
+      reason += ` | Expertise: ${matchedExpertise.join(', ')}`;
+    }
+    
+    // Add confidence and breakdown
+    reason += ` | Confidence: ${(confidence * 100).toFixed(0)}%`;
+    
+    // Add breakdown details for high-confidence selections
+    if (confidence > 0.7) {
+      const topScores = Object.entries(breakdown)
+        .filter(([key, value]) => key !== 'total' && (value as number) > 0.1)
+        .sort(([, a], [, b]) => (b as number) - (a as number))
+        .slice(0, 2)
+        .map(([key, value]) => `${key}:${((value as number) * 100).toFixed(0)}%`);
+      
+      if (topScores.length > 0) {
+        reason += ` | Strong in: ${topScores.join(', ')}`;
+      }
+    }
+    
+    return reason;
+  }
+
   // Conversation context management
-  private getConversationContext(userId: string): ConversationContext {
+  protected getConversationContext(userId: string): ConversationContext {
     if (!this.conversationHistory.has(userId)) {
       this.conversationHistory.set(userId, {
         currentTopic: 'general',
@@ -591,7 +872,7 @@ export class OrchestratorAgent extends Agent {
     return this.conversationHistory.get(userId)!;
   }
 
-  private updateConversationContext(userId: string, intent: any, message: string): void {
+  protected updateConversationContext(userId: string, intent: any, message: string): void {
     const context = this.getConversationContext(userId);
     
     context.currentTopic = intent.topic;
@@ -603,7 +884,7 @@ export class OrchestratorAgent extends Agent {
     this.conversationHistory.set(userId, context);
   }
 
-  private async shouldHandoff(intent: any, context: ConversationContext, currentAgent?: string): Promise<boolean> {
+  protected async shouldHandoff(intent: any, context: ConversationContext, currentAgent?: string): Promise<boolean> {
     // Check custom handoff rules first
     for (const rule of this.handoffRules) {
       if (rule.condition(context, intent.primaryIntent)) {
@@ -697,5 +978,114 @@ export class OrchestratorAgent extends Agent {
     }
     
     return recommendations;
+  }
+  
+  // Detect direct agent requests in user messages
+  private detectDirectAgentRequest(message: string): string | null {
+    const lowerMessage = message.toLowerCase();
+    const availableAgents = this.getAvailableAgents();
+    
+    // Check for explicit agent mentions
+    for (const { name } of availableAgents) {
+      const agentLower = name.toLowerCase();
+      
+      // Direct name mention patterns
+      const directPatterns = [
+        `what does ${agentLower} have to say`,
+        `what does the ${agentLower} have to say`,
+        `ask ${agentLower}`,
+        `ask the ${agentLower}`,
+        `${agentLower} what do you think`,
+        `${agentLower},`,
+        `hey ${agentLower}`,
+        `${agentLower} please`,
+        `can ${agentLower}`,
+        `could ${agentLower}`,
+        `would ${agentLower}`,
+        `${agentLower}:`
+      ];
+      
+      for (const pattern of directPatterns) {
+        if (lowerMessage.includes(pattern)) {
+          console.log(`[Orchestrator] 🎯 Found direct pattern: "${pattern}" → ${name}`);
+          return name;
+        }
+      }
+      
+      // Role-based patterns (CEO, Marketing, Tech, etc.)
+      const rolePatterns = this.getRolePatternsForAgent(name);
+      for (const rolePattern of rolePatterns) {
+        if (lowerMessage.includes(rolePattern)) {
+          console.log(`[Orchestrator] 🎯 Found role pattern: "${rolePattern}" → ${name}`);
+          return name;
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  // Get role-based patterns for each agent type
+  private getRolePatternsForAgent(agentName: string): string[] {
+    const patterns: Record<string, string[]> = {
+      'CEO': [
+        'what does the ceo',
+        'ceo opinion',
+        'ceo perspective',
+        'chief executive',
+        'company leader',
+        'ask the ceo',
+        'ceo says',
+        'ceo thinks'
+      ],
+      'MarketingLead': [
+        'marketing team',
+        'marketing lead',
+        'marketing perspective',
+        'marketing opinion',
+        'ask marketing',
+        'marketing says'
+      ],
+      'TechLead': [
+        'tech lead',
+        'technical lead',
+        'tech team',
+        'technical perspective',
+        'ask tech',
+        'tech says'
+      ],
+      'SalesChief': [
+        'sales team',
+        'sales lead',
+        'sales chief',
+        'sales perspective',
+        'ask sales',
+        'sales says'
+      ],
+      'ResearchPro': [
+        'research team',
+        'researcher',
+        'research perspective',
+        'ask research',
+        'research says'
+      ],
+      'ProjectManager': [
+        'project manager',
+        'pm',
+        'project lead',
+        'project perspective',
+        'ask pm',
+        'project says'
+      ],
+      'FinanceAdvisor': [
+        'finance team',
+        'finance advisor',
+        'financial perspective',
+        'ask finance',
+        'finance says'
+      ]
+    };
+    
+    return patterns[agentName] || [];
   }
 }

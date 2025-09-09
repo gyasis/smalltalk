@@ -18,6 +18,7 @@ import { Memory } from './Memory.js';
 import { MCPClient } from './MCPClient.js';
 import { OrchestratorAgent, HandoffDecision, AgentCapabilities } from '../agents/OrchestratorAgent.js';
 import { InteractiveOrchestratorAgent, PlanExecutionEvent, StreamingResponse } from '../agents/InteractiveOrchestratorAgent.js';
+import { OrchestrationManager, OrchestrationConfig } from './OrchestrationManager.js';
 import { ManifestParser } from '../utils/ManifestParser.js';
 import { Agent as AgentClass } from '../agents/Agent.js';
 
@@ -29,6 +30,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private memory: Memory;
   private mcpClient?: MCPClient;
   private orchestrator: InteractiveOrchestratorAgent;
+  private orchestrationManager?: OrchestrationManager;
   private isRunning = false;
   private activeSessions: Map<string, ChatSession> = new Map();
   private currentAgents: Map<string, string> = new Map(); // userId -> agentName
@@ -42,7 +44,7 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     
     this.config = {
       llmProvider: 'openai',
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini',
       temperature: 0.7,
       maxTokens: 2048,
       debugMode: false,
@@ -691,6 +693,23 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     return this.currentAgents.get(userId);
   }
 
+  /**
+   * Set advanced orchestration manager for reactive chains and team collaboration
+   */
+  public setOrchestrationManager(manager: OrchestrationManager): void {
+    this.orchestrationManager = manager;
+    if (this.config.debugMode) {
+      console.log(`[SmallTalk] 🎼 Advanced orchestration manager configured`);
+    }
+  }
+
+  /**
+   * Get the advanced orchestration manager
+   */
+  public getOrchestrationManager(): OrchestrationManager | undefined {
+    return this.orchestrationManager;
+  }
+
   public forceAgentSwitch(userId: string, agentName: string): boolean {
     if (!this.agents.has(agentName)) {
       return false;
@@ -713,73 +732,326 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
   private inferAgentCapabilities(agent: Agent): AgentCapabilities {
     const config = agent.config;
     
-    // Extract expertise from agent properties (inferred from personality and name)
+    // Enhanced expertise extraction from multiple sources
     const expertise: string[] = [];
     
-    // Infer expertise from agent name and personality
+    // Analyze agent name for domain expertise
     const name = config.name.toLowerCase();
-    if (name.includes('code') || name.includes('dev')) {
-      expertise.push('programming', 'development');
-    }
-    if (name.includes('helper') || name.includes('assist')) {
-      expertise.push('general assistance');
-    }
-    if (name.includes('writer') || name.includes('creative')) {
-      expertise.push('writing', 'content creation');
-    }
+    const nameExpertise = this.extractExpertiseFromName(name);
+    expertise.push(...nameExpertise);
     
-    // If no expertise inferred, provide general assistance
-    if (expertise.length === 0) {
-      expertise.push('general assistance');
-    }
-    
-    // Infer task types from personality and expertise
-    const taskTypes: string[] = [];
+    // Analyze personality for detailed expertise
     const personality = config.personality?.toLowerCase() || '';
+    const personalityExpertise = this.extractExpertiseFromPersonality(personality);
+    expertise.push(...personalityExpertise);
     
-    if (personality.includes('helpful') || personality.includes('supportive')) {
-      taskTypes.push('assistance');
+    // Analyze tools for technical capabilities
+    const tools = config.tools || [];
+    const toolExpertise = this.extractExpertiseFromTools(tools as any[]);
+    expertise.push(...toolExpertise);
+    
+    // Remove duplicates and ensure minimum expertise
+    const uniqueExpertise = [...new Set(expertise)];
+    if (uniqueExpertise.length === 0) {
+      uniqueExpertise.push('general assistance');
     }
-    if (personality.includes('creative') || personality.includes('innovative')) {
-      taskTypes.push('creative');
+    
+    // Enhanced task type inference
+    const taskTypes = this.inferTaskTypes(name, personality, uniqueExpertise);
+    
+    // Smart complexity assessment
+    const complexity = this.assessAgentComplexity(uniqueExpertise, personality, tools.length);
+    
+    // Context awareness based on role and expertise
+    const contextAwareness = this.calculateContextAwareness(uniqueExpertise, personality);
+    
+    // Collaboration style from personality analysis
+    const collaborationStyle = this.inferCollaborationStyle(personality, name);
+
+    if (this.config.debugMode) {
+      console.log(`[SmallTalk] 🧠 Inferred capabilities for ${config.name}:`);
+      console.log(`[SmallTalk]   📚 Expertise: ${uniqueExpertise.join(', ')}`);
+      console.log(`[SmallTalk]   🎯 Task Types: ${taskTypes.join(', ')}`);
+      console.log(`[SmallTalk]   🏆 Complexity: ${complexity}`);
+      console.log(`[SmallTalk]   🧠 Context Awareness: ${contextAwareness}`);
+      console.log(`[SmallTalk]   🤝 Style: ${collaborationStyle}`);
     }
-    if (personality.includes('analytical') || personality.includes('precise')) {
-      taskTypes.push('analysis');
+
+    return {
+      expertise: uniqueExpertise,
+      tools: tools.filter(tool => tool != null).map(tool => typeof tool === 'string' ? tool : String(tool)),
+      personalityTraits: this.extractPersonalityTraits(personality),
+      taskTypes,
+      complexity,
+      contextAwareness,
+      collaborationStyle
+    };
+  }
+
+  private extractExpertiseFromName(name: string): string[] {
+    const expertise: string[] = [];
+    
+    // Business role mapping
+    const roleMap = {
+      'ceo': ['strategy', 'leadership', 'vision', 'decision making', 'business development'],
+      'marketing': ['marketing', 'branding', 'digital marketing', 'customer behavior', 'campaigns'],
+      'tech': ['technical', 'architecture', 'development', 'feasibility', 'technology'],
+      'sales': ['sales', 'revenue', 'customer needs', 'negotiation', 'market demands'],
+      'research': ['research', 'analysis', 'data', 'insights', 'competitive intelligence'],
+      'project': ['project management', 'planning', 'coordination', 'timelines', 'risk management'],
+      'finance': ['finance', 'budgeting', 'roi', 'financial analysis', 'cost management'],
+      'lead': ['leadership', 'management', 'coordination', 'team management'],
+      'manager': ['management', 'planning', 'coordination', 'leadership'],
+      'director': ['strategic planning', 'leadership', 'vision', 'management'],
+      'analyst': ['analysis', 'research', 'data analysis', 'insights'],
+      'advisor': ['consultation', 'expertise', 'guidance', 'strategic advice']
+    };
+    
+    // Check for role keywords in name
+    for (const [role, skills] of Object.entries(roleMap)) {
+      if (name.includes(role)) {
+        expertise.push(...skills);
+      }
     }
-    if (personality.includes('educational') || personality.includes('teaching')) {
-      taskTypes.push('educational');
+    
+    // General skill keywords
+    const skillKeywords = {
+      'code': ['programming', 'development', 'coding'],
+      'dev': ['development', 'programming', 'technical'],
+      'write': ['writing', 'content creation', 'communication'],
+      'creative': ['creativity', 'design', 'innovation'],
+      'helper': ['assistance', 'support', 'guidance'],
+      'assist': ['assistance', 'support', 'help'],
+      'pro': ['professional', 'expert', 'advanced'],
+      'chief': ['leadership', 'management', 'strategic']
+    };
+    
+    for (const [keyword, skills] of Object.entries(skillKeywords)) {
+      if (name.includes(keyword)) {
+        expertise.push(...skills);
+      }
     }
-    if (expertise.some(exp => exp.includes('problem') || exp.includes('debug'))) {
+    
+    return expertise;
+  }
+
+  private extractExpertiseFromPersonality(personality: string): string[] {
+    const expertise: string[] = [];
+    
+    // Skill and domain extraction patterns
+    const patterns = {
+      'strategic': ['strategy', 'planning', 'vision'],
+      'technical': ['technology', 'technical analysis', 'implementation'],
+      'creative': ['creativity', 'innovation', 'design thinking'],
+      'analytical': ['analysis', 'data analysis', 'research'],
+      'marketing': ['marketing', 'branding', 'customer behavior'],
+      'financial': ['finance', 'budgeting', 'cost analysis'],
+      'leadership': ['leadership', 'management', 'team coordination'],
+      'research': ['research', 'investigation', 'competitive analysis'],
+      'sales': ['sales', 'customer relations', 'revenue generation'],
+      'project': ['project management', 'coordination', 'planning'],
+      'customer': ['customer service', 'client relations', 'user experience'],
+      'data': ['data analysis', 'insights', 'metrics'],
+      'business': ['business strategy', 'operations', 'development'],
+      'educational': ['teaching', 'training', 'knowledge transfer'],
+      'consulting': ['advisory', 'consultation', 'expertise']
+    };
+    
+    for (const [pattern, skills] of Object.entries(patterns)) {
+      if (personality.includes(pattern)) {
+        expertise.push(...skills);
+      }
+    }
+    
+    // Extract specific business domains mentioned
+    const domains = ['roi', 'scalability', 'competitive advantage', 'market opportunities', 
+                    'brand positioning', 'digital marketing', 'architecture', 'feasibility',
+                    'security', 'development timelines', 'customer value', 'revenue', 
+                    'market research', 'trend identification', 'risk management'];
+    
+    for (const domain of domains) {
+      if (personality.includes(domain)) {
+        expertise.push(domain);
+      }
+    }
+    
+    return expertise;
+  }
+
+  private extractExpertiseFromTools(tools: any[]): string[] {
+    const expertise: string[] = [];
+    
+    for (const tool of tools) {
+      const toolName = typeof tool === 'string' ? tool : tool.name || '';
+      const toolDesc = typeof tool === 'object' ? tool.description || '' : '';
+      
+      // Tool-based expertise mapping
+      const toolMap: Record<string, string[]> = {
+        'competitor_analysis': ['competitive intelligence', 'market analysis'],
+        'market_sizing': ['market research', 'market analysis', 'business intelligence'],
+        'budget_calculator': ['financial analysis', 'budgeting', 'cost management'],
+        'risk_assessment': ['risk management', 'analysis', 'strategic planning'],
+        'swot_analysis': ['strategic analysis', 'business strategy', 'competitive analysis']
+      };
+      
+      const toolKey = toolName.toLowerCase();
+      if (toolMap[toolKey]) {
+        expertise.push(...toolMap[toolKey]);
+      }
+      
+      // Extract expertise from tool descriptions
+      if (toolDesc.includes('analysis')) expertise.push('analysis');
+      if (toolDesc.includes('financial')) expertise.push('financial analysis');
+      if (toolDesc.includes('market')) expertise.push('market research');
+      if (toolDesc.includes('strategy')) expertise.push('strategic planning');
+      if (toolDesc.includes('data')) expertise.push('data analysis');
+    }
+    
+    return expertise;
+  }
+
+  private inferTaskTypes(name: string, personality: string, expertise: string[]): string[] {
+    const taskTypes: string[] = [];
+    
+    // Task type inference from role and expertise
+    const taskMapping = {
+      'strategy': ['strategic', 'leadership', 'vision', 'planning'],
+      'analysis': ['research', 'data', 'analysis', 'insights'],
+      'creative': ['creative', 'design', 'content', 'innovation'],
+      'technical': ['technical', 'development', 'architecture', 'implementation'],
+      'sales': ['sales', 'customer', 'revenue', 'negotiation'],
+      'marketing': ['marketing', 'branding', 'campaigns', 'promotion'],
+      'financial': ['financial', 'budget', 'cost', 'roi'],
+      'planning': ['project', 'planning', 'coordination', 'management'],
+      'educational': ['teaching', 'training', 'educational', 'guidance'],
+      'consultation': ['advisory', 'consultation', 'expertise']
+    };
+    
+    const allText = `${name} ${personality} ${expertise.join(' ')}`.toLowerCase();
+    
+    for (const [taskType, keywords] of Object.entries(taskMapping)) {
+      if (keywords.some(keyword => allText.includes(keyword))) {
+        taskTypes.push(taskType);
+      }
+    }
+    
+    // Problem-solving task type
+    if (expertise.some(exp => exp.includes('problem') || exp.includes('debug') || exp.includes('troubleshoot'))) {
       taskTypes.push('problem');
     }
     
-    // Default to conversation if no specific task types identified
+    // Default to conversation if no specific types found
     if (taskTypes.length === 0) {
       taskTypes.push('conversation');
     }
+    
+    return [...new Set(taskTypes)];
+  }
 
-    // Infer complexity level from expertise depth
-    let complexity: 'basic' | 'intermediate' | 'advanced' | 'expert' = 'intermediate';
-    if (expertise.length >= 5) {
-      complexity = 'expert';
-    } else if (expertise.length >= 3) {
-      complexity = 'advanced';
-    } else if (expertise.length <= 1) {
-      complexity = 'basic';
+  private assessAgentComplexity(
+    expertise: string[], 
+    personality: string, 
+    toolCount: number
+  ): 'basic' | 'intermediate' | 'advanced' | 'expert' {
+    let complexity = 0;
+    
+    // Expertise depth (40% of score)
+    complexity += (expertise.length / 10) * 0.4; // Max 10 expertise areas
+    
+    // Advanced keywords in personality (30% of score)
+    const advancedKeywords = ['strategic', 'expert', 'advanced', 'complex', 'sophisticated', 'comprehensive'];
+    const advancedCount = advancedKeywords.filter(keyword => personality.includes(keyword)).length;
+    complexity += (advancedCount / advancedKeywords.length) * 0.3;
+    
+    // Tool availability (20% of score)
+    complexity += Math.min(toolCount / 5, 1) * 0.2; // Max 5 tools
+    
+    // Leadership/senior role indicators (10% of score)
+    const seniorKeywords = ['lead', 'director', 'chief', 'head', 'senior', 'principal'];
+    const seniorIndicator = seniorKeywords.some(keyword => personality.includes(keyword)) ? 1 : 0;
+    complexity += seniorIndicator * 0.1;
+    
+    // Convert to categories
+    if (complexity >= 0.8) return 'expert';
+    if (complexity >= 0.6) return 'advanced';
+    if (complexity >= 0.3) return 'intermediate';
+    return 'basic';
+  }
+
+  private calculateContextAwareness(expertise: string[], personality: string): number {
+    let awareness = 0.5; // Base level
+    
+    // Research and analytical roles have higher context awareness
+    const analyticalSkills = ['research', 'analysis', 'data', 'insights', 'competitive intelligence'];
+    const analyticalCount = expertise.filter(exp => 
+      analyticalSkills.some(skill => exp.includes(skill))
+    ).length;
+    awareness += (analyticalCount / analyticalSkills.length) * 0.3;
+    
+    // Strategic roles need high context awareness
+    if (expertise.some(exp => exp.includes('strategy') || exp.includes('strategic'))) {
+      awareness += 0.2;
     }
+    
+    // Detail-oriented personalities
+    if (personality.includes('detail') || personality.includes('thorough') || personality.includes('methodical')) {
+      awareness += 0.1;
+    }
+    
+    return Math.min(awareness, 1.0);
+  }
 
-    // Get tool names
-    const tools = config.tools || [];
+  private inferCollaborationStyle(personality: string, name: string): 'independent' | 'collaborative' | 'supportive' | 'leading' {
+    // Leadership indicators
+    if (name.includes('ceo') || name.includes('director') || name.includes('chief') || name.includes('lead')) {
+      return 'leading';
+    }
+    
+    // Support role indicators
+    if (personality.includes('support') || personality.includes('assist') || personality.includes('help')) {
+      return 'supportive';
+    }
+    
+    // Independent work indicators
+    if (personality.includes('independent') || personality.includes('autonomous') || personality.includes('self-directed')) {
+      return 'independent';
+    }
+    
+    // Default to collaborative
+    return 'collaborative';
+  }
 
-    return {
-      expertise,
-      tools,
-      personalityTraits: personality.split(',').map(trait => trait.trim()),
-      taskTypes,
-      complexity,
-      contextAwareness: 0.8, // Default reasonable value
-      collaborationStyle: 'collaborative' // Default style
-    };
+  private extractPersonalityTraits(personality: string): string[] {
+    const traits: string[] = [];
+    
+    // Common personality trait patterns
+    const traitPatterns = [
+      'strategic', 'creative', 'analytical', 'detail-oriented', 'results-oriented',
+      'data-driven', 'methodical', 'thorough', 'innovative', 'collaborative',
+      'supportive', 'helpful', 'expert', 'professional', 'organized',
+      'focused', 'decisive', 'flexible', 'proactive', 'efficient'
+    ];
+    
+    for (const trait of traitPatterns) {
+      if (personality.includes(trait)) {
+        traits.push(trait);
+      }
+    }
+    
+    // Extract custom traits from personality description
+    const sentences = personality.split(/[.!?]+/);
+    for (const sentence of sentences) {
+      const words = sentence.trim().split(/\s+/);
+      if (words.length <= 3 && words.length > 0) {
+        // Short phrases might be traits
+        const potentialTrait = words.join(' ').toLowerCase().trim();
+        if (potentialTrait.length > 0 && !traits.includes(potentialTrait)) {
+          traits.push(potentialTrait);
+        }
+      }
+    }
+    
+    return traits.slice(0, 8); // Limit to most relevant traits
   }
 
   // Utility methods for framework management

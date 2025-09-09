@@ -11,11 +11,18 @@ export { Chat } from './core/Chat.js';
 export { Memory } from './core/Memory.js';
 export { MCPClient } from './core/MCPClient.js';
 
+// Orchestration system exports
+export { OrchestrationManager } from './core/OrchestrationManager.js';
+export { OrchestrationStrategy } from './core/OrchestrationStrategy.js';
+export { ReactiveChainOrchestrator } from './core/ReactiveChainOrchestrator.js';
+export { TeamCollaborationOrchestrator } from './core/TeamCollaborationOrchestrator.js';
+
 // Agent system exports
 export { Agent } from './agents/Agent.js';
 export { AgentFactory } from './agents/AgentFactory.js';
 export { PromptTemplateManager } from './agents/PromptTemplateManager.js';
 export { OrchestratorAgent } from './agents/OrchestratorAgent.js';
+export { EnhancedOrchestratorAgent } from './agents/EnhancedOrchestratorAgent.js';
 export { InteractiveOrchestratorAgent } from './agents/InteractiveOrchestratorAgent.js';
 
 // Interface exports
@@ -49,6 +56,23 @@ export type {
   SmallTalkFramework,
   PlaygroundConfig
 } from './types/index.js';
+
+// Orchestration type exports
+export type {
+  OrchestrationContext,
+  OrchestrationDecision,
+  ChainEvaluationResult
+} from './core/OrchestrationStrategy.js';
+export type {
+  ChainState
+} from './core/ReactiveChainOrchestrator.js';
+export type {
+  TeamCollaborationPlan
+} from './core/TeamCollaborationOrchestrator.js';
+export type {
+  OrchestrationConfig,
+  AgentCapabilities as OrchestrationAgentCapabilities
+} from './core/OrchestrationManager.js';
 
 // Re-export commonly used interfaces for convenience
 export type { CLIConfig } from './interfaces/CLIInterface.js';

@@ -19,7 +19,7 @@ async function createSimpleTestApp() {
   // Create a simple SmallTalk app
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     debugMode: false
   });
 

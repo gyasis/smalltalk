@@ -4,7 +4,7 @@ import { SmallTalkConfig } from '../../types/index.js';
 const SmallTalkMock = jest.fn().mockImplementation((config: SmallTalkConfig = {}) => {
   const defaultConfig = {
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     temperature: 0.7,
     maxTokens: 2048,
     debugMode: false,
@@ -113,7 +113,7 @@ describe('SmallTalk Framework - Basic Functionality', () => {
       const config = smallTalk.getConfig();
       
       expect(config.llmProvider).toBe('openai');
-      expect(config.model).toBe('gpt-4o');
+      expect(config.model).toBe('gpt-4o-mini');
       expect(config.temperature).toBe(0.7);
       expect(config.maxTokens).toBe(2048);
       expect(config.debugMode).toBe(false);

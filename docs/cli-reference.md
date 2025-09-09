@@ -156,7 +156,7 @@ import { SmallTalk, Agent } from 'smalltalk';
 // Create and configure your app
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   debugMode: false
 });
 
@@ -192,7 +192,7 @@ export const playgroundConfig: PlaygroundConfig = {
 async function createMyApp() {
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o'
+    model: 'gpt-4o-mini'
   });
   
   // Add your agents
@@ -534,7 +534,7 @@ export const playgroundConfig: PlaygroundConfig = {
 // 2. App setup
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o'
+  model: 'gpt-4o-mini'
 });
 
 // 3. Agent creation
@@ -556,7 +556,7 @@ export default app;
 const app = new SmallTalk({
   llmProvider: process.env.LLM_PROVIDER || 'openai',
   apiKey: process.env.OPENAI_API_KEY,
-  model: process.env.LLM_MODEL || 'gpt-4o'
+  model: process.env.LLM_MODEL || 'gpt-4o-mini'
 });
 
 export const playgroundConfig = {

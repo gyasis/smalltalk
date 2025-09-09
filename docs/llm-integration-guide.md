@@ -33,7 +33,7 @@ import { SmallTalk, Agent, WebChatInterface } from 'smalltalk';
 // 1. Create framework instance
 const smalltalk = new SmallTalk({
   llmProvider: 'openai',           // or 'anthropic', 'gemini', etc.
-  model: 'gpt-4o',                 // provider-specific model
+  model: 'gpt-4o-mini',                 // provider-specific model
   orchestration: true,             // Enable intelligent agent routing
   debugMode: false,                // Production setting
   maxTokens: 4000,                 // Response length limit
@@ -186,7 +186,7 @@ export const SmallTalkChat: React.FC<SmallTalkChatProps> = ({
       // Create SmallTalk instance
       const st = new SmallTalk({
         llmProvider: config.llmProvider || 'openai',
-        model: config.model || 'gpt-4o',
+        model: config.model || 'gpt-4o-mini',
         orchestration: true,
         sessionId,
         ...config
@@ -245,7 +245,7 @@ const MyApp = () => {
       <h1>My Web App</h1>
       <SmallTalkChat 
         agents={agents}
-        config={{ llmProvider: 'openai', model: 'gpt-4o' }}
+        config={{ llmProvider: 'openai', model: 'gpt-4o-mini' }}
         onMessage={(msg) => console.log('New message:', msg)}
         height="400px"
       />
@@ -315,7 +315,7 @@ class SmallTalkWidget {
 // Usage
 const widget = new SmallTalkWidget('chat-container', {
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   agents: [
     {
       name: 'Support',
@@ -344,7 +344,7 @@ app.use(express.json());
 // Initialize SmallTalk
 const smalltalk = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true
 });
 
@@ -616,7 +616,7 @@ const stats = smalltalk.getOrchestrationStats();
 const smalltalk = new SmallTalk({
   llmProvider: 'openai',
   apiKey: process.env.OPENAI_API_KEY,    // Use environment variables
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   
   // Security settings
   security: {
@@ -644,7 +644,7 @@ const smalltalk = new SmallTalk({
 ```typescript
 // Robust error handling
 smalltalk.configureFallbacks({
-  primaryModel: 'gpt-4o',
+  primaryModel: 'gpt-4o-mini',
   fallbackModels: ['gpt-3.5-turbo', 'claude-3-sonnet'],
   
   retryConfig: {
@@ -684,7 +684,7 @@ smalltalk.configureFallbacks({
 // E-commerce focused configuration
 const ecommerceChat = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   orchestration: true
 });
 
@@ -738,7 +738,7 @@ const CheckoutSupport = () => {
       agents={agents}
       config={{
         llmProvider: 'openai',
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         context: {
           page: 'checkout',
           userCart: getCurrentCart(),

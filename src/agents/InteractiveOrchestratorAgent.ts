@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { nanoid } from 'nanoid';
+import { EnhancedOrchestratorAgent } from './EnhancedOrchestratorAgent.js';
 import { OrchestratorAgent, AgentCapabilities, HandoffDecision } from './OrchestratorAgent.js';
 import { Agent } from './Agent.js';
 import {
@@ -28,7 +29,7 @@ export interface StreamingResponse {
   planId?: string;
 }
 
-export class InteractiveOrchestratorAgent extends OrchestratorAgent {
+export class InteractiveOrchestratorAgent extends EnhancedOrchestratorAgent {
   private activePlans: Map<string, ExecutionPlan> = new Map();
   private executionQueue: Array<{ planId: string; sessionId: string; userId: string }> = [];
   private isExecuting = false;
@@ -501,34 +502,141 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
     }
   }
 
-  // Plan analysis methods
+  // Plan analysis methods with intelligent collaboration detection
   private async shouldCreatePlan(message: string, userId: string): Promise<boolean> {
-    // Simple heuristic - check for complexity indicators
-    const complexityIndicators = [
+    // First, check for explicit plan indicators
+    const planIndicators = [
       'step by step', 'first...then', 'after that', 'introduce yourselves',
-      'everyone', 'all agents', 'each agent', 'one by one', 'sequential'
+      'everyone introduce', 'all agents introduce', 'each agent introduce',
+      'one by one', 'sequential', 'plan this', 'break this down',
+      'create a plan for', 'outline the steps'
     ];
     
     const messageLower = message.toLowerCase();
-    const hasComplexityIndicator = complexityIndicators.some(indicator => 
+    const explicitPlan = planIndicators.some(indicator => 
       messageLower.includes(indicator)
     );
-
-    // Also consider if multiple agents are available
-    const agentCount = (this as any).agentRegistry.size;
     
-    return hasComplexityIndicator && agentCount > 1;
+    // If explicit plan indicators found, return true immediately
+    if (explicitPlan) {
+      console.log(`[🎭 InteractiveOrchestrator] 📋 Plan Decision: EXPLICIT PLAN REQUIRED for "${message.substring(0, 50)}..."`);
+      return true;
+    }
+    
+    // Intelligent collaboration detection - determine if multiple agents needed
+    const needsCollaboration = await this.intelligentCollaborationDetection(message);
+    
+    console.log(`[🎭 InteractiveOrchestrator] 📋 Plan Decision: ${needsCollaboration || explicitPlan ? 'PLAN REQUIRED' : 'SIMPLE ROUTING'} for "${message.substring(0, 50)}..."`);
+    
+    return needsCollaboration || explicitPlan;
+  }
+
+  /**
+   * Intelligent auto-detection of collaboration needs using LLM reasoning
+   * No keyword dependency - determines based on context and complexity
+   */
+  private async intelligentCollaborationDetection(message: string): Promise<boolean> {
+    const prompt = `
+Analyze this user request and determine if it would benefit from multiple specialized agents working together.
+
+User Request: "${message}"
+
+Available agent types: CEO (strategy, leadership), MarketingLead (marketing, branding), TechLead (technical, architecture), SalesChief (sales, customer value), ResearchPro (research, analysis), ProjectManager (planning, coordination), FinanceAdvisor (financial, budgeting).
+
+Consider:
+1. Does this require multiple areas of expertise?
+2. Would different professional perspectives add significant value?
+3. Is this a complex business scenario that benefits from diverse viewpoints?
+4. Would a single agent response be incomplete or lacking depth?
+
+Respond with exactly: "COLLABORATION_NEEDED" or "SINGLE_AGENT_SUFFICIENT"
+
+Examples:
+- "Launch a new product" → COLLABORATION_NEEDED (needs marketing, tech, finance, sales input)
+- "What's the weather like?" → SINGLE_AGENT_SUFFICIENT
+- "Investment opportunity analysis" → COLLABORATION_NEEDED (multiple business perspectives valuable)
+- "Fix a bug in my code" → SINGLE_AGENT_SUFFICIENT
+- "Plan our company's expansion strategy" → COLLABORATION_NEEDED
+`;
+
+    try {
+      const response = await this.generateResponse(prompt, {
+        session: { 
+          id: 'collab-detection', 
+          messages: [], 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        },
+        message: { 
+          id: 'collab-prompt', 
+          role: 'system', 
+          content: prompt, 
+          timestamp: new Date() 
+        },
+        config: {}
+      });
+
+      const needsCollaboration = response.trim().includes('COLLABORATION_NEEDED');
+      console.log(`[🎭 InteractiveOrchestrator] 🧠 Intelligent Collaboration Detection: ${needsCollaboration ? 'TEAM NEEDED' : 'SINGLE AGENT OK'}`);
+      
+      return needsCollaboration;
+    } catch (error) {
+      console.error('Collaboration detection failed:', error);
+      // Fallback to simple heuristics if LLM call fails
+      return this.fallbackCollaborationDetection(message);
+    }
+  }
+
+  /**
+   * Fallback collaboration detection using heuristics
+   */
+  private fallbackCollaborationDetection(message: string): boolean {
+    const collaborationKeywords = [
+      'collaborate', 'work together', 'all agents', 'team collaboration',
+      'each agent should', 'everyone should', 'all contribute', 'team effort',
+      'collaborative', 'all working together', 'each contribute', 'together on',
+      'combined expertise', 'team presentation', 'collective', 'jointly',
+      'investment', 'business opportunity', 'strategy', 'launch', 'plan',
+      'presentation', 'analysis', 'comprehensive', 'multiple perspectives'
+    ];
+    
+    const messageLower = message.toLowerCase();
+    return collaborationKeywords.some(keyword => messageLower.includes(keyword));
   }
 
   private async generatePlanSteps(message: string, userId: string): Promise<Partial<PlanStep>[]> {
     const availableAgents = this.getAvailableAgents();
+    const messageLower = message.toLowerCase();
     
     // For "introduce yourselves" scenario
-    if (message.toLowerCase().includes('introduce')) {
+    if (messageLower.includes('introduce')) {
       return availableAgents.map(agent => ({
         agentName: agent.name,
         action: `Introduce yourself as ${agent.name}. Share your expertise and how you can help users.`,
         expectedOutput: `A friendly introduction from ${agent.name} explaining their role and capabilities`
+      }));
+    }
+
+    // For team collaboration on presentations or complex requests
+    if (messageLower.includes('collaborate') || messageLower.includes('presentation') || 
+        messageLower.includes('all agents') || messageLower.includes('work together') ||
+        messageLower.includes('each agent should')) {
+      
+      // Create specialized steps based on the request context
+      if (messageLower.includes('investor') || messageLower.includes('investment')) {
+        // Investor presentation - each agent contributes their expertise
+        return availableAgents.map(agent => ({
+          agentName: agent.name,
+          action: `Contribute to the investor presentation for LifeRecord Alpha from your ${agent.name} perspective. Focus on your area of expertise and explain why this blockchain NFT patient-owned medical records system is a compelling investment opportunity.`,
+          expectedOutput: `${agent.name}'s expert analysis of the investment opportunity, highlighting key benefits and value propositions from their professional perspective`
+        }));
+      }
+      
+      // General collaboration request
+      return availableAgents.map(agent => ({
+        agentName: agent.name,
+        action: `Collaborate on the user's request: "${message}". Provide your expertise as ${agent.name} and work with the team to deliver a comprehensive response.`,
+        expectedOutput: `${agent.name}'s expert contribution to the collaborative response`
       }));
     }
 
@@ -628,8 +736,8 @@ export class InteractiveOrchestratorAgent extends OrchestratorAgent {
       // Step 2: Internal Deliberation Rounds
       const analysis = await this.conductInternalDeliberation(plan, planVerification);
       
-      // Step 3: Decision and Response Generation
-      await this.generateIntelligentResponse(plan, analysis, sessionId, userId);
+      // Step 3: Internal Decision and Auto-Execution (React-style component)
+      await this.executeInternalDecision(plan, analysis, sessionId, userId);
       
     } catch (error) {
       console.error('[Orchestrator] Post-execution analysis failed:', error);
@@ -871,43 +979,89 @@ Decision: [ACTION] because [REASONING]
   }
 
   /**
-   * Generate intelligent response based on analysis and emit to interfaces
+   * Internal React-style decision component - handles post-execution logic
+   * No user-facing meta-commentary, just internal decision-making and execution
    */
-  private async generateIntelligentResponse(plan: ExecutionPlan, analysis: any, sessionId: string, userId: string): Promise<void> {
+  private async executeInternalDecision(plan: ExecutionPlan, analysis: any, sessionId: string, userId: string): Promise<void> {
     const { accomplishments, goalAssessment, nextActionDecision } = analysis;
-    
-    let response = '';
-    let nextAction = 'user_input_required';
     
     switch (nextActionDecision.chosenAction) {
       case 'RETURN_SUMMARY':
-        response = await this.generateCompletionSummary(plan, accomplishments, goalAssessment);
-        nextAction = 'user_input_required';
+        // Internal decision: Task is complete, return clean summary
+        await this.returnCleanSummary(plan, accomplishments, goalAssessment, sessionId, userId);
         break;
         
       case 'GENERATE_FOLLOWUP':
-        response = await this.generateFollowupPlan(plan, goalAssessment.identifiedGaps);
-        nextAction = 'followup_plan_generated';
+        // Internal decision: Auto-generate and execute follow-up plan
+        await this.autoExecuteFollowupPlan(plan, goalAssessment.identifiedGaps, sessionId, userId);
         break;
         
       case 'ASK_GUIDANCE':
       default:
-        response = await this.generateGuidanceRequest(plan, accomplishments, goalAssessment);
-        nextAction = 'user_guidance_requested';
+        // Internal decision: Task complete but unclear next steps, return summary with options
+        await this.returnSummaryWithOptions(plan, accomplishments, goalAssessment, sessionId, userId);
         break;
     }
+  }
 
-    // Emit the intelligent response
+  /**
+   * Internal decision component: Return clean task completion summary
+   */
+  private async returnCleanSummary(plan: ExecutionPlan, accomplishments: any, goalAssessment: any, sessionId: string, userId: string): Promise<void> {
+    const summary = await this.generateCompletionSummary(plan, accomplishments, goalAssessment);
+    
     this.emit('analysis_response', {
-      type: 'analysis_response',
+      type: 'task_completion',
       planId: plan.id,
-      response,
-      nextAction,
+      response: summary,
+      nextAction: 'completed',
       analysis: {
         accomplishments: accomplishments.keyAccomplishments,
         isComplete: goalAssessment.isComplete,
-        decision: nextActionDecision.chosenAction,
-        reasoning: nextActionDecision.reasoning
+        decision: 'completed'
+      },
+      timestamp: new Date()
+    });
+  }
+
+  /**
+   * Internal decision component: Auto-execute follow-up plan without asking
+   */
+  private async autoExecuteFollowupPlan(plan: ExecutionPlan, gaps: string[], sessionId: string, userId: string): Promise<void> {
+    // Internal logic: Generate follow-up plan and store it for execution
+    const followupPlan = await this.createFollowupPlan(plan, gaps);
+    
+    // Store the follow-up plan for automatic processing
+    this.activePlans.set(followupPlan.id, followupPlan);
+    
+    // Emit internal event for follow-up execution (React-style component logic)
+    this.emit('followup_plan_created', {
+      type: 'followup_plan_created',
+      planId: followupPlan.id,
+      originalPlanId: plan.id,
+      gaps,
+      autoExecute: true,
+      timestamp: new Date()
+    });
+    
+    // No meta-commentary - internal decision completed
+  }
+
+  /**
+   * Internal decision component: Return summary with clear next step options
+   */
+  private async returnSummaryWithOptions(plan: ExecutionPlan, accomplishments: any, goalAssessment: any, sessionId: string, userId: string): Promise<void> {
+    const summaryWithOptions = await this.generateSummaryWithOptions(plan, accomplishments, goalAssessment);
+    
+    this.emit('analysis_response', {
+      type: 'task_completion_with_options',
+      planId: plan.id,
+      response: summaryWithOptions,
+      nextAction: 'completed_with_options',
+      analysis: {
+        accomplishments: accomplishments.keyAccomplishments,
+        isComplete: goalAssessment.isComplete,
+        decision: 'completed_with_options'
       },
       timestamp: new Date()
     });
@@ -961,18 +1115,19 @@ Decision: [ACTION] because [REASONING]
 
   private async generateCompletionSummary(plan: ExecutionPlan, accomplishments: any, goalAssessment: any): Promise<string> {
     const prompt = `
-Generate a concise, intelligent completion summary for the user.
+Generate a clean, direct completion summary.
 
 Original Request: "${plan.userIntent}"
 Key Accomplishments: ${accomplishments.keyAccomplishments.join(', ')}
 Goal Status: ${goalAssessment.isComplete ? 'Complete' : 'Mostly Complete'}
 
 Create a summary that:
-1. Clearly states what was accomplished
-2. Highlights the main outcomes/value delivered
-3. Suggests natural next steps or asks what the user wants to do next
+1. Directly states what was accomplished 
+2. Focuses on user value and outcomes
+3. NO meta-commentary about plans, analysis, or internal processes
+4. Keep it brief and conversational
 
-Keep it conversational and helpful, not robotic.
+Format as clean, direct content focused on results.
 `;
     
     try {
@@ -996,10 +1151,73 @@ Keep it conversational and helpful, not robotic.
     }
   }
 
-  private async generateFollowupPlan(plan: ExecutionPlan, gaps: string[]): Promise<string> {
-    // For now, return a message indicating follow-up is needed
-    // In the future, this could actually generate and execute a new plan
-    return `✅ Initial objectives completed. I've identified some areas that could benefit from additional attention: ${gaps.join(', ')}. Shall I create a follow-up plan to address these areas?`;
+  /**
+   * Internal React component: Create follow-up plan automatically (no user prompts)
+   */
+  private async createFollowupPlan(plan: ExecutionPlan, gaps: string[]): Promise<ExecutionPlan> {
+    const followupPrompt = `Build on the previous work from: "${plan.userIntent}". 
+    
+Address these remaining gaps: ${gaps.join(', ')}.
+
+Complete the unfinished aspects and enhance the overall solution.`;
+
+    const followupPlan: ExecutionPlan = {
+      id: `${plan.id}_followup`,
+      userIntent: followupPrompt,
+      expectedOutcome: `Address remaining gaps: ${gaps.join(', ')}`,
+      steps: [], // Will be generated during processing
+      currentStepIndex: 0,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      metadata: {
+        followupTo: plan.id,
+        gaps
+      }
+    };
+
+    return followupPlan;
+  }
+
+  /**
+   * Internal React component: Generate summary with clear options (no meta-commentary)
+   */
+  private async generateSummaryWithOptions(plan: ExecutionPlan, accomplishments: any, goalAssessment: any): Promise<string> {
+    const prompt = `
+Generate a clean completion summary with clear next step options.
+
+Original request: "${plan.userIntent}"
+Accomplished: ${accomplishments.keyAccomplishments.join(', ')}
+Completion status: ${goalAssessment.isComplete ? 'Fully complete' : 'Partially complete'}
+
+Create a professional summary that:
+1. Briefly states what was accomplished
+2. Suggests 2-3 logical next steps the user might want to take
+3. NO meta-commentary about plans, follow-ups, or internal processes
+4. Keep it conversational and focused on user value
+
+Format as clean, actionable content.
+`;
+    
+    try {
+      return await this.generateResponse(prompt, {
+        session: { 
+          id: 'summary-options', 
+          messages: [], 
+          createdAt: new Date(), 
+          updatedAt: new Date() 
+        },
+        message: { 
+          id: 'summary-prompt', 
+          role: 'system', 
+          content: prompt, 
+          timestamp: new Date() 
+        },
+        config: {}
+      });
+    } catch (error) {
+      return `${accomplishments.keyAccomplishments.join('. ')}. You might want to explore expanding on these areas, or I can help with something new.`;
+    }
   }
 
   private async generateGuidanceRequest(plan: ExecutionPlan, accomplishments: any, goalAssessment: any): Promise<string> {

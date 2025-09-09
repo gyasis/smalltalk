@@ -68,7 +68,8 @@ export class EnhancedOrchestratorAgent extends OrchestratorAgent {
         intent: intent.primaryIntent,
         complexity: intent.complexity,
         topic: intent.topic,
-        urgency: intent.urgency
+        urgency: intent.urgency,
+        originalMessage: message
       });
       
       console.log('[🎭 EnhancedOrchestrator] ✅ SELECTION COMPLETE:');

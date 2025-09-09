@@ -206,7 +206,7 @@ import { SmallTalk, Agent } from 'smalltalk-ai';
 const app = new SmallTalk({
   orchestration: true,
   llmProvider: 'openai',
-  model: 'gpt-4o'
+  model: 'gpt-4o-mini'
 });
 
 // Add specialized agents
@@ -321,3 +321,4 @@ The phased implementation approach ensures steady progress while maintaining qua
 **Document Version**: 1.0  
 **Last Updated**: January 2025  
 **Next Review**: February 2025
+

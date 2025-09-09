@@ -3,7 +3,11 @@ import {
   CLIInterface,
   Agent,
   PromptTemplate,
-  PlaygroundConfig
+  PlaygroundConfig,
+  OrchestrationManager,
+  ReactiveChainOrchestrator,
+  TeamCollaborationOrchestrator,
+  OrchestrationConfig
 } from '../src/index.js';
 
 // Playground configuration for web mode
@@ -19,10 +23,28 @@ export const playgroundConfig: PlaygroundConfig = {
 async function createBusinessMeetingApp() {
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     debugMode: true,
     orchestration: true
   });
+
+  // 🚀 NEW: Configure advanced orchestration strategies
+  const orchestrationConfig: OrchestrationConfig = {
+    defaultStrategy: 'reactive', // Use reactive chains by default
+    enableReactiveChains: true,  // Enable Agent1→Eval→Agent2→Eval→Agent3 sequences
+    enableTeamCollaboration: true, // Enable simultaneous multi-agent responses
+    llmConfig: {
+      provider: 'openai',
+      model: 'gpt-4o-mini'
+    },
+    strategicPrompting: true,     // Use sophisticated 1000+ token prompts
+    contextPreservation: true    // Maintain context between agent switches
+  };
+
+  // Initialize advanced orchestration manager
+  const orchestrationManager = new OrchestrationManager(orchestrationConfig);
+  app.setOrchestrationManager(orchestrationManager);
+  console.log('🎼 Advanced orchestration strategies initialized!');
 
   // Create specialized business agents for different roles
   const ceo = new Agent({

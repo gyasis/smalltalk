@@ -93,7 +93,7 @@ import { Agent } from 'smalltalk-ai';
 
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o'
+  model: 'gpt-4o-mini'
 });
 
 // Add MCP server
@@ -223,7 +223,7 @@ async function createMCPEnabledApp() {
   // Create SmallTalk instance
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     orchestration: true
   });
 
@@ -521,7 +521,7 @@ const secureConfig = {
 ```typescript
 const app = new SmallTalk({
   llmProvider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-4o-mini',
   debugMode: true,  // Enables MCP debug logging
   mcpTimeout: 30000 // 30 second timeout for MCP calls
 });

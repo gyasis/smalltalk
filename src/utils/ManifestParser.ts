@@ -197,7 +197,7 @@ export class ManifestParser {
     return {
       config: {
         name: agentName,
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         personality: 'helpful and knowledgeable',
         temperature: 0.7,
         maxTokens: 2048,

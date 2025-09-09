@@ -19,7 +19,7 @@ async function createWebAPIServer() {
   // Create the SmallTalk framework with orchestration
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o',
+    model: 'gpt-4o-mini',
     debugMode: true,
     orchestration: true
   });

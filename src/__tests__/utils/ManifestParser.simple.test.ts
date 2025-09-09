@@ -96,7 +96,7 @@ capabilities:
         config: {
           name: 'JSONAgent',
           personality: 'analytical',
-          model: 'gpt-4o'
+          model: 'gpt-4o-mini'
         }
       });
     } else if (filePath.includes('nonexistent')) {
@@ -165,7 +165,7 @@ config:
     return {
       config: {
         name: agentName,
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         personality: 'helpful and knowledgeable',
         temperature: 0.7,
         maxTokens: 2048,
@@ -256,7 +256,7 @@ describe('ManifestParser - Core Functionality', () => {
 
       expect(parsed.config.name).toBe('JSONAgent');
       expect(parsed.config.personality).toBe('analytical');
-      expect(parsed.config.model).toBe('gpt-4o');
+      expect(parsed.config.model).toBe('gpt-4o-mini');
     });
 
     it('should handle file not found error', () => {
@@ -374,7 +374,7 @@ capabilities:
       const template = MockManifestParser.createTemplate('MyAgent');
 
       expect(template.config.name).toBe('MyAgent');
-      expect(template.config.model).toBe('gpt-4o');
+      expect(template.config.model).toBe('gpt-4o-mini');
       expect(template.config.personality).toBe('helpful and knowledgeable');
       expect(template.config.temperature).toBe(0.7);
       expect(template.config.maxTokens).toBe(2048);

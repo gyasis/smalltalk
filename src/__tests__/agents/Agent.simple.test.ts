@@ -185,7 +185,7 @@ describe('Agent - Core Functionality', () => {
         timestamp: new Date()
       },
       tools: [],
-      config: { llmProvider: 'openai', model: 'gpt-4o' }
+      config: { llmProvider: 'openai', model: 'gpt-4o-mini' }
     };
   });
 
