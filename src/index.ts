@@ -17,6 +17,11 @@ export { OrchestrationStrategy } from './core/OrchestrationStrategy.js';
 export { ReactiveChainOrchestrator } from './core/ReactiveChainOrchestrator.js';
 export { TeamCollaborationOrchestrator } from './core/TeamCollaborationOrchestrator.js';
 
+// Interactive orchestration exports (Phase 1)
+export { InteractiveOrchestrator } from './core/InteractiveOrchestrator.js';
+export { RealTimeUserMonitor } from './core/RealTimeUserMonitor.js';
+export { InterruptibleExecutor } from './core/InterruptibleExecutor.js';
+
 // Agent system exports
 export { Agent } from './agents/Agent.js';
 export { AgentFactory } from './agents/AgentFactory.js';
