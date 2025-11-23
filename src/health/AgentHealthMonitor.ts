@@ -303,8 +303,8 @@ export class AgentHealthMonitor implements IAgentHealthMonitor {
       if (!status.metadata) {
         status.metadata = {};
       }
-      status.metadata.lastActivity = activityType;
-      status.metadata.lastActivityTime = Date.now();
+      status.metadata['lastActivity'] = activityType;
+      status.metadata['lastActivityTime'] = Date.now();
     }
   }
 

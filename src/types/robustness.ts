@@ -405,3 +405,118 @@ export interface Event {
   /** Event metadata */
   metadata?: Record<string, any>;
 }
+
+/**
+ * Message entity
+ *
+ * Represents a single message in a conversation.
+ * Used in group conversations and message history.
+ */
+export interface Message {
+  /** Unique message identifier */
+  id: string;
+  /** Message role */
+  role: 'user' | 'agent' | 'system';
+  /** Message content */
+  content: string;
+  /** Message timestamp (Unix timestamp in milliseconds) */
+  timestamp: number;
+  /** Agent name if role is 'agent' */
+  agentName?: string;
+  /** Additional metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Speaker selection strategy enumeration
+ *
+ * Defines available strategies for selecting next speaker in group conversations.
+ * FR-018: Speaker selection strategies
+ */
+export enum SpeakerSelectionStrategy {
+  /** Round-robin: Sequential rotation through agents */
+  ROUND_ROBIN = 'round-robin',
+  /** LLM-based: AI-powered context-aware selection */
+  LLM_BASED = 'llm-based',
+  /** Priority-based: Higher priority agents get more turns */
+  PRIORITY = 'priority',
+}
+
+/**
+ * Conversation context
+ *
+ * Shared context for group conversations.
+ */
+export interface ConversationContext {
+  /** Conversation messages */
+  messages: Message[];
+  /** Shared context variables */
+  variables?: Record<string, any>;
+}
+
+/**
+ * Workflow task status enumeration
+ */
+export enum TaskStatus {
+  PENDING = 'pending',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+/**
+ * Workflow task entity
+ */
+export interface WorkflowTask {
+  id: string;
+  description: string;
+  assignedAgentId?: string;
+  status: TaskStatus;
+  createdAt: Date;
+  completedAt?: Date;
+  dependencies?: string[];
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Group conversation entity
+ *
+ * Manages multi-agent collaboration in shared conversation contexts.
+ * FR-017: Multiple agents in shared contexts
+ * FR-018: Speaker selection strategies
+ * FR-019: Shared conversation history
+ */
+export interface GroupConversation {
+  /** Unique conversation identifier (UUID v4) */
+  id: string;
+  /** Array of agent IDs participating in conversation */
+  agentIds: string[];
+  /** Conversation history */
+  conversationHistory: Message[];
+  /** Shared context accessible to all agents */
+  sharedContext: Record<string, any>;
+  /** Speaker selection strategy */
+  speakerSelection: SpeakerSelectionStrategy;
+  /** Last speaker agent ID */
+  lastSpeakerId?: string;
+  /** Current workflow state */
+  workflowState: {
+    tasks: WorkflowTask[];
+    currentTaskId?: string;
+    completedTaskIds: string[];
+  };
+  /** Conversation metadata */
+  metadata: {
+    createdAt: Date;
+    updatedAt: Date;
+    messageCount: number;
+    speakerSelections: number;
+    [key: string]: any;
+  };
+  /** Consecutive turns per speaker for throttling */
+  consecutiveSpeakerTurns: Map<string, number>;
+  /** Speaker queue for round-robin selection (internal) */
+  _speakerQueue?: string[];
+  /** Agent priorities for priority-based selection (internal) */
+  _agentPriorities?: Record<string, number>;
+}
