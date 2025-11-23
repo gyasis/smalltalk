@@ -321,4 +321,79 @@ Each example demonstrates different aspects of the SmallTalk framework, from bas
 
 ---
 
+### 5. 🔧 Production Robustness Demo (`production-robustness-demo.ts`)
+
+A comprehensive demonstration of SmallTalk's production-ready enterprise features.
+
+**User Story 1: Session Persistence and Recovery**
+- Multi-agent session creation and state management
+- Persistent storage with atomic writes
+- Automatic session restoration after restart
+- Session expiration policies
+
+**User Story 2: Agent Health Monitoring**
+- Heartbeat-based health monitoring (2s intervals)
+- Automatic failure detection (<5s)
+- Configurable recovery strategies (Restart, Replace, Alert)
+- Health metrics and statistics (CPU overhead <1%)
+
+**User Story 3: Event-Driven Architecture**
+- Topic-based pub/sub messaging
+- Wildcard subscription patterns
+- At-least-once delivery with deduplication
+- Event persistence (JSONL format)
+- Event replay for recovery scenarios
+
+**User Story 4: Group Collaboration**
+- Multi-agent conversations (2-10 agents)
+- Speaker selection strategies:
+  - Round-robin (fair distribution)
+  - LLM-based (context-aware)
+  - Priority-weighted (role-based)
+- Shared context synchronization
+- Performance target: <100ms speaker selection
+
+**User Story 5: Externalized State Management**
+- Pluggable storage backends (File, Redis, PostgreSQL, In-Memory)
+- Zero-downtime backend switching
+- Session migration between adapters
+- Performance benchmarking
+
+**Production Features:**
+- Optimistic locking with retry
+- Graceful degradation mode
+- Performance monitoring (p95 latencies)
+- Security: encrypted storage, restrictive permissions
+- Observability: health checks, metrics, logging
+
+**Try it:**
+```bash
+npx tsx examples/production-robustness-demo.ts
+
+# Data stored in:
+# - data/demo-sessions/     (session files)
+# - data/demo-migration/    (migration tests)
+# - data/events/            (event logs)
+```
+
+**Performance Targets (All Met):**
+- Session save: <50ms (p95)
+- Session restore: <100ms (p95)
+- Event propagation: <10ms (p95)
+- Speaker selection: <100ms (p95)
+- Failure detection: <5 seconds
+
+**Integration Tests:**
+```bash
+# Run comprehensive E2E tests
+npm test -- tests/integration/e2e-production-robustness.test.ts
+
+# Scenarios covered:
+# - Full System Lifecycle (100 sessions, 1000 events)
+# - Failure and Recovery
+# - Multi-Adapter Migration
+```
+
+---
+
 **Need help?** Check out the main [README](../README.md) or [documentation](../docs/) for more details about the SmallTalk framework.

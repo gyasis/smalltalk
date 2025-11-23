@@ -4,6 +4,12 @@ export default {
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(nanoid)/)',
+  ],
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       useESM: true,

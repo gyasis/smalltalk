@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Development overrides for SmallTalk Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for dev dependencies
+    command: npm run dev  # Hot reload with tsx watch
+    environment:
+      - NODE_ENV=development
+      - DEBUG=smalltalk:*
+      - LOG_LEVEL=debug
+    volumes:
+      # Mount source for hot reload
+      - ./src:/app/src:ro
+      - ./examples:/app/examples:ro
+      - ./interfaces:/app/interfaces:ro
+      # Keep node_modules from container (faster than host)
+      - /app/node_modules
+      # Mount data for development
+      - ./data:/app/data
+      - ./logs:/app/logs
+    ports:
+      # Expose debugging port
+      - "${DEBUG_PORT:-9229}:9229"
+    # Disable health checks in dev for faster startup
+    healthcheck:
+      disable: true
+
+  # Redis development overrides
+  redis:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: >
+      redis-server
+      --appendonly no
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+    # Faster health checks in dev
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # PostgreSQL development overrides
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-smalltalk_dev}
+      - POSTGRES_USER=${POSTGRES_USER:-dev}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev}
+    # Faster health checks in dev
+    healthcheck:
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # Enable Prometheus in development
+  prometheus:
+    profiles: []  # Remove profile to enable by default in dev
+
+  # Enable Grafana in development
+  grafana:
+    profiles: []  # Remove profile to enable by default in dev
