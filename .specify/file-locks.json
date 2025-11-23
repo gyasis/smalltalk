@@ -2,6 +2,26 @@
   "active_locks": [],
   "lock_history": [
     {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/tests/contract/event-bus.shared.test.ts",
+      "agent_id": "main-agent",
+      "agent_type": "main",
+      "locked_at": "2025-11-23T14:00:00Z",
+      "released_at": "2025-11-23T15:15:00Z",
+      "task_completed": true,
+      "verification_status": "passing",
+      "notes": "1,439 lines, Phase 5 contract tests for EventBus, comprehensive pub/sub validation"
+    },
+    {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/tests/integration/event-bus.test.ts",
+      "agent_id": "main-agent",
+      "agent_type": "main",
+      "locked_at": "2025-11-23T15:12:00Z",
+      "released_at": "2025-11-23T15:12:00Z",
+      "task_completed": true,
+      "verification_status": "passing",
+      "notes": "414 lines, 19/19 integration tests passing (100%), end-to-end EventBus validation"
+    },
+    {
       "file_path": "/home/gyasis/Documents/code/smalltalk/src/events/EventBus.ts",
       "agent_id": "main-agent",
       "agent_type": "main",
