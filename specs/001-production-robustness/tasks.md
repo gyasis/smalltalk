@@ -1,410 +1,439 @@
-# Implementation Tasks: Production Robustness Enhancements
+# Production Robustness Implementation Tasks
 
 **Feature**: Production Robustness Enhancements
 **Branch**: `001-production-robustness`
-**Date**: 2025-11-23
-**Status**: Ready for Implementation
+**Generated**: 2025-11-23
+**Status**: Phase 1 Complete - Ready for TDD Implementation
 
-## Overview
-
-This document provides dependency-ordered, independently testable tasks for implementing session persistence, agent health monitoring, event-driven architecture, and group collaboration features in the SmallTalk framework.
-
-**Key Principles**:
-- Tasks organized by user story for independent delivery
-- Test-first development (TDD) with contract tests before implementation
-- Parallel execution opportunities marked with `[P]`
-- Each user story is independently testable
-- MVP = User Story 1 (Session Persistence) only
+This document provides a comprehensive, dependency-ordered task breakdown for implementing all 5 user stories with strict Test-Driven Development (TDD) workflow.
 
 ---
 
-## Task Summary
+## Executive Summary
 
-| Phase | User Story | Tasks | Parallelizable |
-|-------|------------|-------|----------------|
-| Phase 1 | Setup | 6 | 3 |
-| Phase 2 | Foundational | 8 | 5 |
-| Phase 3 | US1 (Session Persistence) | 12 | 6 |
-| Phase 4 | US2 (Agent Health) | 10 | 5 |
-| Phase 5 | US3 (Event-Driven) | 11 | 6 |
-| Phase 6 | US4 (Group Collaboration) | 9 | 4 |
-| Phase 7 | US5 (Externalized State) | 7 | 4 |
-| Phase 8 | Polish & Integration | 9 | 3 |
-| **Total** | | **72** | **36** |
+**Total Tasks**: 126 across 8 phases
+**Implementation Pattern**: Red-Green-Refactor TDD cycle
+**Completion Criteria**: All 56 functional requirements (FR-001 to FR-056) implemented with passing tests
 
----
+### Task Breakdown
 
-## Dependency Graph
-
-```mermaid
-graph TD
-    Setup[Phase 1: Setup] --> Foundation[Phase 2: Foundational]
-    Foundation --> US1[Phase 3: US1 - Session Persistence]
-    US1 --> US2[Phase 4: US2 - Agent Health]
-    US1 --> US3[Phase 5: US3 - Event-Driven]
-    US2 -.optional.-> US4[Phase 6: US4 - Group Collaboration]
-    US3 --> US4
-    US1 --> US5[Phase 7: US5 - Externalized State]
-    US2 -.optional.-> Polish[Phase 8: Polish & Integration]
-    US3 -.optional.-> Polish
-    US4 -.optional.-> Polish
-    US5 -.optional.-> Polish
-
-    classDef mvp fill:#90EE90
-    classDef p1 fill:#FFD700
-    classDef p2 fill:#87CEEB
-    classDef p3 fill:#DDA0DD
-
-    class US1 mvp
-    class US2 p1
-    class US3,US4 p2
-    class US5 p3
-```
-
-**Legend**:
-- 🟢 MVP (P1): User Story 1 - Session Persistence
-- 🟡 P1: User Story 2 - Agent Health
-- 🔵 P2: User Stories 3 & 4 - Event-Driven & Group Collaboration
-- 🟣 P3: User Story 5 - Externalized State
+| Phase | Description | Tasks | Duration | Priority |
+|-------|-------------|-------|----------|----------|
+| 1 | Setup | 8 | 2 hours | P0 |
+| 2 | Foundational | 18 | 1 day | P0 |
+| 3 | US1 - Session Persistence | 22 | 2 days | P1 |
+| 4 | US2 - Agent Health | 20 | 2 days | P1 |
+| 5 | US3 - Event-Driven | 24 | 2 days | P2 |
+| 6 | US4 - Group Collaboration | 16 | 1.5 days | P2 |
+| 7 | US5 - Externalized State | 10 | 1 day | P3 |
+| 8 | Polish & Cross-Cutting | 8 | 1 day | P3 |
+| **Total** | | **126** | **~2 weeks** | |
 
 ---
 
-## Phase 1: Setup
+## Task Organization Principles
 
-**Goal**: Initialize project structure, dependencies, and type definitions.
+### TDD Workflow (Mandatory)
 
-**Tasks**:
+**Red-Green-Refactor Cycle**:
+1. **RED**: Write failing test first
+2. **GREEN**: Write minimal code to pass
+3. **REFACTOR**: Improve quality while keeping tests green
 
-- [ ] T001 Create `src/types/robustness.ts` with Session, AgentHealthStatus, Event, EventReplayPolicy, GroupConversation, StateVersion, RecoveryStrategy types
-- [ ] T002 Install dependencies: `better-sqlite3` (session storage), `@types/better-sqlite3` (TypeScript types)
-- [ ] T003 [P] Create `src/persistence/` directory for storage adapters
-- [ ] T004 [P] Create `tests/contract/` directory for contract test suites
-- [ ] T005 [P] Create `tests/integration/` directory for integration tests
-- [ ] T006 Update `package.json` with new exports for robustness modules
+**Rules**:
+- ❌ NO production code without failing test
+- ✅ Contract tests validate API contracts
+- ✅ Tests runnable independently
 
----
+### File Locking Protocol
 
-## Phase 2: Foundational (Blocking Prerequisites)
-
-**Goal**: Implement storage adapter pattern and base infrastructure needed by all user stories.
-
-**Independent Test**: Create a FileStorageAdapter, save a test session, retrieve it, and verify data integrity.
-
-**Tasks**:
-
-### Storage Adapter Contract
-
-- [ ] T007 Create `src/persistence/StorageAdapter.interface.ts` from `specs/001-production-robustness/contracts/StorageAdapter.contract.ts`
-- [ ] T008 Create contract test suite in `tests/contract/storage-adapter.contract.test.ts` with 18 tests (initialize, saveSession, getSession, deleteSession, listSessions, hasSession, set, get, delete, has, clear, getStats)
-
-### Storage Adapter Implementations
-
-- [ ] T009 [P] Implement `src/persistence/InMemoryStorageAdapter.ts` (for testing) - Run contract tests
-- [ ] T010 [P] Implement `src/persistence/FileStorageAdapter.ts` with better-sqlite3 - Run contract tests
-- [ ] T011 [P] Create `src/persistence/StorageAdapterFactory.ts` to create adapters by type
-- [ ] T012 Verify all adapters pass contract test suite (18/18 tests green)
-
-### Core Type Export
-
-- [ ] T013 [P] Export all robustness types from `src/index.ts`
-- [ ] T014 [P] Create barrel export file `src/persistence/index.ts` for adapter exports
-
----
-
-## Phase 3: User Story 1 - Session Persistence and Recovery (P1) 🟢
-
-**Goal**: Enable conversations to survive system restarts with full state recovery.
-
-**Why this priority**: Most critical gap preventing production readiness. Without session persistence, all conversations lost on restart.
-
-**Independent Test**: Start a multi-agent conversation, save the session ID, restart the SmallTalk application, restore the session using `restoreSession(sessionId)`, and verify the conversation continues with full context preserved (conversation history, agent states, metadata).
-
-**Test File**: `tests/integration/session-persistence.integration.test.ts`
-
-**Tasks**:
-
-### Contract & Tests
-
-- [ ] T015 [US1] Create `src/core/SessionManager.interface.ts` from `specs/001-production-robustness/contracts/SessionManager.contract.ts`
-- [ ] T016 [US1] Create contract test suite in `tests/contract/session-manager.contract.test.ts` with tests for createSession, saveSession, restoreSession, deleteSession, listSessions, updateSessionState, addMessage, updateAgentState, cleanupExpiredSessions, getStats
-- [ ] T017 [US1] Create integration test `tests/integration/session-persistence.integration.test.ts` - Test Scenario 1 (conversation restart recovery)
-
-### Implementation
-
-- [ ] T018 [P] [US1] Implement `src/core/SessionManager.ts` class with StorageAdapter dependency injection
-- [ ] T019 [P] [US1] Implement `createSession(options)` method - Assign unique UUID, set expiration, return Session object
-- [ ] T020 [P] [US1] Implement `saveSession(session)` method - Serialize to storage, meet <50ms SC-009
-- [ ] T021 [US1] Implement `restoreSession(sessionId)` method - Deserialize from storage, meet <100ms SC-007
-- [ ] T022 [US1] Implement `deleteSession(sessionId)` method - Remove from storage
-- [ ] T023 [US1] Implement `listSessions(options)` method - Query with filtering
-- [ ] T024 [P] [US1] Implement `updateSessionState(sessionId, state)` method - Transition session state
-- [ ] T025 [P] [US1] Implement `addMessage(sessionId, message)` method - Append to conversation history
-- [ ] T026 [P] [US1] Implement `updateAgentState(sessionId, agentId, state)` method - Update agent in session
-
-### Cleanup & Validation
-
-- [ ] T027 [US1] Implement `cleanupExpiredSessions(expirationMs)` method - Delete expired sessions, return count (FR-004)
-- [ ] T028 [US1] Implement `getStats()` method - Return SessionStorageStats (FR-037)
-- [ ] T029 [US1] Run all contract tests - Verify 100% pass rate
-- [ ] T030 [US1] Run integration test - Verify scenario 1 passes (restart recovery)
-
----
-
-## Phase 4: User Story 2 - Agent Disconnection Detection and Recovery (P1) 🟡
-
-**Goal**: Automatically detect agent failures and recover without manual intervention.
-
-**Why this priority**: Agent failures create orphaned conversations and poor user experiences. Automatic recovery essential for production reliability.
-
-**Independent Test**: Start an agent conversation, simulate an agent crash (process.exit or network timeout), verify the system detects the failure within 5 seconds, and either restarts the agent with restored state or assigns a replacement while preserving conversation continuity.
-
-**Test File**: `tests/integration/agent-health-recovery.integration.test.ts`
-
-**Tasks**:
-
-### Contract & Tests
-
-- [ ] T031 [US2] Create `src/core/AgentHealthMonitor.interface.ts` from `specs/001-production-robustness/contracts/AgentHealthMonitor.contract.ts`
-- [ ] T032 [US2] Create contract test suite in `tests/contract/agent-health-monitor.contract.test.ts` with tests for initialize, registerAgent, unregisterAgent, startMonitoring, stopMonitoring, getAgentHealth, getAllAgentHealth, sendHeartbeat, recordActivity, recoverAgent, setRecoveryStrategy, getStats
-- [ ] T033 [US2] Create integration test `tests/integration/agent-health-recovery.integration.test.ts` - Test Scenario 1 (agent crash detection and recovery)
-
-### Implementation
-
-- [ ] T034 [P] [US2] Implement `src/core/AgentHealthMonitor.ts` class with hybrid event + timeout heartbeat mechanism (research.md Section 5)
-- [ ] T035 [P] [US2] Implement `initialize(config)` method - Set heartbeatInterval (2s), activityTimeout (5s), maxMissedBeats (2)
-- [ ] T036 [P] [US2] Implement `registerAgent(agent, recoveryStrategy)` method - Add agent to monitoring with strategy
-- [ ] T037 [US2] Implement `startMonitoring()` method - Start heartbeat timers, meet <1% CPU SC-010
-- [ ] T038 [US2] Implement `sendHeartbeat(agentId)` and `recordActivity(agentId, activityType)` methods - Update lastHeartbeat/lastActivity timestamps
-- [ ] T039 [US2] Implement heartbeat failure detection - Trigger on 2 missed heartbeats within 5s (SC-003)
-- [ ] T040 [US2] Implement `recoverAgent(agentId)` method - Execute recovery strategy (restart/replace/alert), meet 90% success SC-004
-
-### Validation
-
-- [ ] T041 [US2] Implement `getAgentHealth(agentId)` and `getAllAgentHealth()` methods - Return AgentHealthStatus
-- [ ] T042 [US2] Implement `getStats()` method - Return MonitoringStats with CPU overhead tracking
-- [ ] T043 [US2] Run all contract tests - Verify 100% pass rate
-- [ ] T044 [US2] Run integration test - Verify scenario 1 passes (5-second detection, 90% recovery)
-
----
-
-## Phase 5: User Story 3 - Event-Driven Agent Communication (P2) 🔵
-
-**Goal**: Enable agents to react automatically to conversation events without explicit routing.
-
-**Why this priority**: Event-driven patterns enable organic agent collaboration and reduce tight coupling. Makes SmallTalk more agentic and scalable.
-
-**Independent Test**: Configure agents to subscribe to "task:completed" topic, trigger an event by having one agent publish a task completion message, and verify subscribed agents receive the event within 10ms and react automatically without explicit routing.
-
-**Test File**: `tests/integration/event-driven-communication.integration.test.ts`
-
-**Tasks**:
-
-### Contract & Tests
-
-- [ ] T045 [US3] Create `src/core/EventBus.interface.ts` from `specs/001-production-robustness/contracts/EventBus.contract.ts`
-- [ ] T046 [US3] Create contract test suite in `tests/contract/event-bus.contract.test.ts` with tests for publish, subscribe, unsubscribe, unsubscribeAll, replay, setReplayPolicy, getReplayPolicy, clearEventHistory, getStats
-- [ ] T047 [US3] Create integration test `tests/integration/event-driven-communication.integration.test.ts` - Test Scenario 1 (pub/sub with <10ms latency)
-
-### Implementation
-
-- [ ] T048 [P] [US3] Implement `src/core/EventBus.ts` class extending Node.js EventEmitter (research.md Section 1)
-- [ ] T049 [P] [US3] Implement file-based event replay storage with JSON Lines + in-memory index (research.md Section 6)
-- [ ] T050 [P] [US3] Implement `publish(topic, payload, options)` method - Emit event, persist for replay, meet <10ms SC-008
-- [ ] T051 [US3] Implement `subscribe(topic, subscriberId, handler, options)` method - Register handler with wildcard support (e.g., 'agent:*')
-- [ ] T052 [US3] Implement `unsubscribe(topic, subscriberId)` and `unsubscribeAll(subscriberId)` methods
-- [ ] T053 [US3] Implement `replay(subscriberId, options)` method - Replay missed events based on policy, meet <200ms SC-011
-
-### Event Replay Policies
-
-- [ ] T054 [P] [US3] Implement `setReplayPolicy(subscriberId, policy)` method - Configure none/full/critical-only (FR-016a/b/c)
-- [ ] T055 [P] [US3] Implement `getReplayPolicy(subscriberId)` method - Return current policy (default: critical-only)
-- [ ] T056 [US3] Implement `clearEventHistory(sessionId, olderThan)` method - Cleanup expired events
-- [ ] T057 [US3] Implement `getStats()` method - Return EventBusStats with propagation latency tracking
-- [ ] T058 [US3] Run all contract tests - Verify 100% pass rate
-- [ ] T059 [US3] Run integration test - Verify scenario 1 passes (<10ms delivery, wildcard subscriptions work)
-
----
-
-## Phase 6: User Story 4 - Group Conversation Collaboration (P2) 🔵
-
-**Goal**: Enable multiple agents to collaborate simultaneously in shared conversations.
-
-**Why this priority**: True multi-agent collaboration unlocks SmallTalk's full potential. Sequential one-at-a-time agents limit collaborative capabilities.
-
-**Independent Test**: Create a group conversation with 3 agents (Researcher, Writer, Reviewer), send a complex query requiring multiple perspectives ("What are the key challenges in AI alignment?"), and verify agents collaborate naturally with appropriate LLM-based speaker selection (<100ms) and shared context access.
-
-**Test File**: `tests/integration/group-collaboration.integration.test.ts`
-
-**Tasks**:
-
-### Contract & Tests
-
-- [ ] T060 [US4] Create `src/core/GroupConversationManager.interface.ts` from `specs/001-production-robustness/contracts/GroupConversationManager.contract.ts`
-- [ ] T061 [US4] Create contract test suite in `tests/contract/group-conversation-manager.contract.test.ts` with tests for createGroup, addAgent, removeAgent, handleMessage, selectSpeaker, setSelectionStrategy, getConversation, updateSharedContext, endConversation, getStats
-- [ ] T062 [US4] Create integration test `tests/integration/group-collaboration.integration.test.ts` - Test Scenario 1 (3-agent group with LLM-based speaker selection)
-
-### Implementation
-
-- [ ] T063 [P] [US4] Implement `src/core/GroupConversationManager.ts` class
-- [ ] T064 [P] [US4] Implement `createGroup(agents, options)` method - Initialize GroupConversation with speakerSelection strategy (round-robin/llm-based/priority)
-- [ ] T065 [US4] Implement `selectSpeaker(conversationId, context)` method - Return SpeakerSelectionResult with confidence/reasoning, meet <100ms SC-012
-- [ ] T066 [P] [US4] Implement LLM-based speaker selection using Token.js (FR-018, SC-013: 90% contextually appropriate)
-- [ ] T067 [P] [US4] Implement `handleMessage(conversationId, userMessage)` method - Orchestrate speaker selection and agent responses
-
-### Group Management
-
-- [ ] T068 [US4] Implement `addAgent(conversationId, agent)` and `removeAgent(conversationId, agentId)` methods - Enforce 10-agent max (FR-036)
-- [ ] T069 [US4] Implement `updateSharedContext(conversationId, contextUpdate)` method - Merge context updates (FR-019)
-- [ ] T070 [US4] Implement `getStats()` method - Return GroupConversationStats with success rate tracking
-- [ ] T071 [US4] Run all contract tests - Verify 100% pass rate
-- [ ] T072 [US4] Run integration test - Verify scenario 1 passes (3-agent collaboration, speaker selection <100ms, 90% appropriate selections)
-
----
-
-## Phase 7: User Story 5 - Externalized State Management (P3) 🟣
-
-**Goal**: Store agent state externally to enable distributed architectures and better debugging.
-
-**Why this priority**: Important for distributed systems, but can be delivered after core persistence and recovery features.
-
-**Independent Test**: Configure external state storage (FileStorageAdapter), run an agent that modifies state (key-value pairs), restart the agent process, and verify the agent loads the correct state from external storage using `storageAdapter.get(key)`.
-
-**Test File**: `tests/integration/externalized-state.integration.test.ts`
-
-**Tasks**:
-
-### State Versioning
-
-- [ ] T073 [P] [US5] Implement `src/core/StateVersionManager.ts` class for state versioning (FR-028)
-- [ ] T074 [P] [US5] Implement `createVersion(entityId, snapshot)` method - Create StateVersion with version number, timestamp
-- [ ] T075 [P] [US5] Implement `getVersion(entityId, version)` method - Retrieve specific state version
-
-### State Conflict Resolution
-
-- [ ] T076 [US5] Implement `resolveConflict(entityId, versions)` method - Last-write-wins or merge strategies (FR-030)
-- [ ] T077 [US5] Create integration test `tests/integration/externalized-state.integration.test.ts` - Test Scenario 1 (state persistence across restart)
-- [ ] T078 [US5] Implement state synchronization interval for distributed agents (FR-029)
-
-### Validation
-
-- [ ] T079 [US5] Test state versioning - Verify version tracking works across multiple updates
-- [ ] T080 [US5] Test conflict resolution - Verify last-write-wins strategy resolves concurrent updates
-- [ ] T081 [US5] Run integration test - Verify scenario 1 passes (state loads correctly after restart)
-
----
-
-## Phase 8: Polish & Cross-Cutting Concerns
-
-**Goal**: Production hardening, performance validation, and cross-feature integration.
-
-**Tasks**:
-
-### Integration & End-to-End Testing
-
-- [ ] T082 Create `tests/e2e/production-robustness.e2e.test.ts` - Test all features together (session + health + events + groups)
-- [ ] T083 Test session persistence with agent health recovery - Verify conversation continuity during agent failures
-- [ ] T084 Test event-driven patterns with group collaboration - Verify events trigger appropriate group member actions
-
-### Performance Validation
-
-- [ ] T085 [P] Benchmark session restore latency - Verify <100ms for 100-message sessions (SC-007)
-- [ ] T086 [P] Benchmark event propagation - Verify <10ms delivery (SC-008)
-- [ ] T087 [P] Benchmark heartbeat CPU overhead - Verify <1% with 100 agents (SC-010)
-
-### Documentation & Examples
-
-- [ ] T088 Create quickstart example in `examples/production-robustness.ts` demonstrating all features
-- [ ] T089 Update main README.md with production robustness features section
-- [ ] T090 Create migration guide for existing SmallTalk applications to adopt persistence
-
----
-
-## Parallel Execution Examples
-
-### Phase 3 (US1 - Session Persistence)
+Before any task:
 ```bash
-# Parallel implementation after contract tests pass
-T018, T019, T020 can run in parallel (different methods)
-T024, T025, T026 can run in parallel (different methods)
-```
-
-### Phase 4 (US2 - Agent Health)
-```bash
-# Parallel implementation after contract tests pass
-T034, T035, T036 can run in parallel (different methods)
-```
-
-### Phase 5 (US3 - Event-Driven)
-```bash
-# Parallel implementation after contract tests pass
-T048, T049, T050 can run in parallel (EventBus core + storage + publish)
-T054, T055 can run in parallel (replay policy getters/setters)
-```
-
-### Phase 6 (US4 - Group Collaboration)
-```bash
-# Parallel implementation after contract tests pass
-T063, T064 can run in parallel (manager + createGroup)
-T066, T067 can run in parallel (LLM selection + handleMessage)
+# Check .specify/file-locks.json
+# If unlocked: Add lock entry
+# After verification: Release lock → Update Memory Bank → Git commit
 ```
 
 ---
 
-## Implementation Strategy
+## Phase 1: Setup (8 tasks, 2 hours)
 
-### MVP Scope (Minimum Viable Product)
-**Recommended for first release: Phase 3 (User Story 1) only**
+### 1.1: Project Structure
+- Create directories: `src/core/`, `src/persistence/`, `tests/contract/`, `tests/integration/`, `tests/unit/`
+- Verify `src/types/robustness.ts` exists
 
-- ✅ Session Persistence and Recovery
-- ✅ Storage adapters (InMemory, File)
-- ✅ Basic session CRUD operations
-- ✅ Expiration policies
+### 1.2: Install Dependencies
+- Jest, zlib types, nanoid
+- Verify: `npx tsc --noEmit`
 
-**Delivers**: Conversations survive restarts (most critical production gap)
+### 1.3: Jest Configuration
+- ES modules support
+- Coverage: 80% threshold
+- Test patterns: `tests/**/*.test.ts`
 
-### Incremental Delivery Milestones
+### 1.4: Environment Configuration
+- `.env.example` with FR-051 variables
+- `src/config/environment.ts`
 
-**Milestone 1 (MVP)**: Phases 1-3 → Session Persistence
-- **Deliverable**: Applications can save/restore conversations
-- **Test**: Restart application mid-conversation, verify seamless resumption
-- **Timeline**: Foundational + US1 = 26 tasks
+### 1.5: Data Directories
+- `data/{sessions,agent-state,events}/`
+- Permissions: 700
 
-**Milestone 2**: Add Phase 4 → Agent Health Monitoring
-- **Deliverable**: Automatic agent failure detection and recovery
-- **Test**: Kill agent process, verify automatic recovery
-- **Timeline**: +10 tasks (cumulative: 36)
+### 1.6: TypeScript Path Aliases
+- `@core/*`, `@persistence/*`, `@types/*`
 
-**Milestone 3**: Add Phases 5-6 → Event-Driven + Group Collaboration
-- **Deliverable**: Reactive agents and multi-agent conversations
-- **Test**: Publish event, verify subscribed agents react; 3-agent group collaboration
-- **Timeline**: +20 tasks (cumulative: 56)
+### 1.7: Logging Infrastructure
+- `src/utils/logger.ts`
+- Structured JSON (FR-045)
+- Correlation IDs
 
-**Milestone 4**: Add Phase 7 → Externalized State Management
-- **Deliverable**: Distributed state with versioning
-- **Test**: Distributed agents share state
-- **Timeline**: +7 tasks (cumulative: 63)
-
-**Milestone 5**: Add Phase 8 → Production Polish
-- **Deliverable**: Performance-validated, documented, production-ready
-- **Test**: End-to-end scenarios pass
-- **Timeline**: +9 tasks (total: 72)
+### 1.8: Metrics Infrastructure
+- `src/utils/metrics.ts`
+- Prometheus format (FR-043)
 
 ---
 
-## Task Validation Checklist
+## Phase 2: Foundational (18 tasks, 1 day)
 
-✅ All 72 tasks follow checklist format: `- [ ] [TaskID] [P?] [Story?] Description with file path`
-✅ Tasks organized by user story (US1-US5) for independent delivery
-✅ Each user story has independent test criteria
-✅ Dependency graph shows story completion order
-✅ Parallel execution examples provided per story
-✅ MVP scope clearly defined (US1 only)
-✅ Contract tests specified before implementation (TDD)
-✅ File paths included in all implementation tasks
-✅ Performance criteria referenced (SC-007, SC-008, SC-010, etc.)
+### 2.1-2.4: StorageAdapter Contract Tests
+- **RED**: Lifecycle, session ops, batch/KV, performance/stats
+- **Target**: Contract test suite complete
+
+### 2.5-2.8: FileStorageAdapter
+- **GREEN**: Implement to pass contract tests
+- **FR**: FR-001 to FR-005, FR-034a (chmod 600)
+- **Features**: JSON files, gzip compression >100KB, atomic writes
+
+### 2.9-2.12: InMemoryStorageAdapter
+- **GREEN**: Testing utility
+- **Features**: Map-based, <1ms operations
+
+### 2.13-2.16: SessionSerializer Tests
+- **RED**: JSON serialization, size/trimming, error handling, integration
+- **FR**: FR-002, FR-009a
+
+### 2.17: StorageAdapter Factory
+- Create adapters by type ('file', 'memory', 'redis', 'postgres')
+
+### 2.18: Phase 2 Verification
+- All contract tests pass (100%)
+- Coverage >80%
+- Zero TypeScript errors
+
+**Parallel Opportunities**:
+- Tasks 2.1-2.4: Contract tests (4 parallel)
+- Tasks 2.5-2.8 + 2.9-2.12: Adapters (2 parallel)
+- Tasks 2.13-2.16: Serializer tests (independent)
 
 ---
 
-**Next Steps**: Begin with Phase 1 (Setup), then Phase 2 (Foundational), then implement User Story 1 (MVP). Run contract tests before each implementation phase (Red-Green-Refactor cycle).
+## Phase 3: US1 - Session Persistence (22 tasks, 2 days)
 
-**Status**: ✅ Ready for Implementation
+**User Story**: Session Persistence and Recovery
+**FR**: FR-001 to FR-005
+
+### 3.1: SessionManager Contract
+- **RED**: Create, save, restore tests
+- **GREEN**: Implement with StorageAdapter DI
+- **FR**: UUID v4, retry logic (FR-002a)
+
+### 3.2: State Management
+- **FR**: FR-004, FR-004a
+- State transitions: active → idle → expired
+- Background cleanup (5 minutes)
+
+### 3.3: Listing and Filtering
+- State filter, pagination, timestamp filter
+
+### 3.4: Conversation History
+- **FR**: FR-003
+- Message append, ordering, persistence
+
+### 3.5: Agent State Management
+- **FR**: FR-003
+- Map<agentId, AgentState>
+
+### 3.6: Optimistic Locking
+- **FR**: FR-005
+- Version conflicts, retry (3x, 100ms backoff), last-write-wins
+
+### 3.7: Statistics and Metrics
+- **FR**: FR-037, FR-038, FR-043
+- session_count gauge, stats caching
+
+### 3.8: Retry and Error Handling
+- **FR**: FR-002a, FR-002b
+- Retry: 1s, 5s, 30s backoff
+- Background saves every 60s
+- CRITICAL alert after 5 minutes
+
+### 3.9: Performance Optimization
+- **SC**: SC-007 (100ms), SC-009 (50ms)
+- LRU cache for recent sessions
+
+### 3.10: Integration Tests
+- Lifecycle, concurrent access, expiration, large sessions (1000+ messages), crash recovery, stress test (100 sessions)
+
+---
+
+## Phase 4: US2 - Agent Health (20 tasks, 2 days)
+
+**User Story**: Agent Disconnection Detection and Recovery
+**FR**: FR-006 to FR-010
+
+### 4.1: AgentHealthMonitor Contract
+- **FR**: FR-006
+- Register, unregister, start/stop monitoring
+
+### 4.2: Heartbeat Mechanism
+- **FR**: FR-006, FR-007
+- Poll every 2s, detect failures within 5s, 2 missed beats → disconnected
+
+### 4.3: Activity Tracking
+- **FR**: FR-009 (liveness probe)
+- Zombie detection (heartbeat OK, liveness fails)
+
+### 4.4: Recovery Strategies
+- **FR**: FR-008, FR-009a
+- restart, replace, alert
+- State save/restore
+- 90% auto-recovery (SC-004)
+
+### 4.5: Event Replay During Recovery
+- **FR**: FR-009a, FR-016a
+- Query EventBus for missed events
+- Idempotent replay, chronological order
+- >50% failure → degraded state
+
+### 4.6: Health Statistics
+- **FR**: FR-010, FR-043
+- agent_health_status gauge
+- Heartbeat/recovery counters
+
+### 4.7: Graceful Degradation
+- **FR**: FR-010a
+- >3 agents fail in 30s → degradation mode
+- Pause new sessions, reduce limit 100→50
+- Recovery every 60s, exit <2 failed for 120s
+
+### 4.8: Integration Tests
+- Complete lifecycle, heartbeat failure, zombie detection, state preservation, degradation, stress test (50 agents)
+
+---
+
+## Phase 5: US3 - Event-Driven (24 tasks, 2 days)
+
+**User Story**: Event-Driven Agent Communication
+**FR**: FR-011 to FR-016
+
+### 5.1: EventBus Contract
+- **FR**: FR-011, FR-012
+- Publish-subscribe, wildcard topics ('agent:*')
+
+### 5.2: At-Least-Once Delivery
+- **FR**: FR-011a
+- Processed event registry (Map<subscriberId, Set<eventId>>)
+- LRU eviction (10,000 entries), hourly cleanup
+
+### 5.3: Latency Optimization
+- **FR**: FR-013, **SC**: SC-008 (10ms p95)
+- Latency measurement, violations logged
+- CRITICAL alert if p95 >10ms for 5 minutes
+
+### 5.4: Event Persistence
+- **FR**: FR-014
+- Append-only log (JSONL format)
+- `data/events/<topic>.log`
+- Retention: 24 hours (configurable)
+- Hourly cleanup
+
+### 5.5: Event Replay
+- **FR**: FR-014, **SC**: SC-011 (200ms)
+- Filtering: time, priority, topics, limit
+- Read JSONL, streaming for large logs
+
+### 5.6: Replay Policies
+- **FR**: FR-016a, FR-016b, FR-016c
+- none, full, critical-only (default)
+- YAML config support
+
+### 5.7: Statistics and Metrics
+- **FR**: FR-015, FR-043
+- event_throughput counter
+- event_propagation_latency_ms histogram (p50, p95, p99)
+
+### 5.8: Integration Tests
+- Complete flow, persistence/replay, at-least-once, policies, cleanup, stress test (10k events/sec)
+
+---
+
+## Phase 6: US4 - Group Collaboration (16 tasks, 1.5 days)
+
+**User Story**: Group Conversation Collaboration
+**FR**: FR-017 to FR-021
+
+### 6.1: GroupConversationManager Contract
+- **FR**: FR-017, FR-019
+- 2-10 agents (FR-036), shared context
+
+### 6.2: Round-Robin Speaker Selection
+- **FR**: FR-018
+- Speaker queue, rotation, lastSpeakerId tracking
+
+### 6.3: LLM-Based Speaker Selection
+- **FR**: FR-018, FR-015
+- Context analysis, capability matching
+- <100ms p95, fallback to round-robin
+
+### 6.4: Priority-Based Speaker Selection
+- **FR**: FR-018
+- Highest priority, ties → round-robin, throttling
+
+### 6.5: Speaker Selection Throttling
+- **FR**: FR-020
+- Max 3 consecutive turns, cooldown (1 turn)
+- Override for critical events
+
+### 6.6: Workflow State Management
+- **FR**: FR-021
+- Task queue, completion status, persistence
+
+### 6.7: Integration Tests
+- Complete flow, all 3 strategies, shared context, workflow state, performance (10 agents, <100ms), stress test
+
+**Parallel Opportunities**:
+- Tasks 6.2-6.4: Speaker selection strategies (3 parallel)
+
+---
+
+## Phase 7: US5 - Externalized State (10 tasks, 1 day)
+
+**User Story**: Externalized State Management
+**FR**: FR-022 to FR-026
+
+### 7.1-7.3: RedisStorageAdapter
+- **GREEN**: Pass all contract tests
+- Redis hashes (session:<id>), TTL, pipelining
+- Key-value with Redis strings
+
+### 7.4-7.6: PostgresStorageAdapter
+- **GREEN**: Pass all contract tests
+- SQL schema (sessions, kv tables), prepared statements
+- Optimistic locking (version column), transactions
+
+### 7.7: Storage Adapter Comparison
+- Performance comparison across all adapters
+- Feature parity validation
+
+**Parallel Opportunities**:
+- Tasks 7.1-7.3 + 7.4-7.6: Both adapters (2 parallel)
+
+---
+
+## Phase 8: Polish & Cross-Cutting (8 tasks, 1 day)
+
+### 8.1: Health and Readiness Endpoints
+- **FR**: FR-052, FR-053
+- GET /health (status JSON)
+- GET /ready (200 or 503)
+
+### 8.2: Prometheus Metrics Endpoint
+- **FR**: FR-043
+- GET /metrics (Prometheus format)
+- All required metrics
+
+### 8.3: Graceful Shutdown
+- **FR**: FR-054
+- SIGTERM → 5-step shutdown
+- <60 seconds total
+
+### 8.4: Docker Configuration
+- **FR**: FR-050
+- Dockerfile (multi-stage)
+- docker-compose.yml (app, redis, postgres)
+
+### 8.5: Deployment Documentation
+- **FR**: FR-055
+- Docker setup, environment variables, monitoring, backup/restore
+
+### 8.6: Example Application
+- `examples/production-robustness-demo.ts`
+- All 5 user stories demonstrated
+
+### 8.7: Integration Test Suite
+- End-to-end (100 concurrent sessions)
+- All user stories working together
+
+### 8.8: Final Verification
+- 100% test pass rate
+- >80% coverage
+- All 56 FRs implemented
+- All 30 success criteria met
+- Zero TypeScript errors
+- Production-ready
+
+---
+
+## Parallel Execution Opportunities
+
+### High-Value Parallelization
+
+**Phase 2**:
+- Contract tests (4 parallel)
+- Adapters (2 parallel)
+- Serializer tests (independent)
+- **Benefit**: 4x speedup
+
+**Phase 3-5**:
+- SessionManager, AgentHealthMonitor, EventBus
+- **Benefit**: 3x speedup
+
+**Phase 6**:
+- Speaker selection strategies (3 parallel)
+- **Benefit**: 3x speedup
+
+**Phase 7**:
+- Redis and Postgres adapters (2 parallel)
+- **Benefit**: 2x speedup
+
+**Overall**: 20-30% time reduction with parallelization
+
+---
+
+## Distributed Development Protocol
+
+### Pre-Flight Check
+```bash
+# 1. Check .specify/file-locks.json
+# 2. If unlocked: Add lock entry
+# 3. After verification: Release lock
+```
+
+### Task Completion
+```bash
+# 1. Move lock to history
+# 2. Update Memory Bank (activeContext.md, progress.md)
+# 3. Atomic Git commit
+```
+
+### Phase Boundary (HARD CONSTRAINT)
+```bash
+# DO NOT proceed without:
+# 1. Memory Bank update
+# 2. Git commit
+```
+
+---
+
+## Success Metrics
+
+- **Test Coverage**: 100% pass rate, >80% code coverage
+- **Requirements**: All 56 FRs implemented
+- **Success Criteria**: All 30 criteria met
+- **Performance**: SC-007 (100ms), SC-009 (50ms), SC-008 (10ms), SC-011 (200ms)
+- **Quality**: Zero TypeScript errors
+- **Deployment**: Docker, documentation, example app
+
+---
+
+**Next Action**: Begin Phase 2, Task 2.1 (StorageAdapter Contract Tests - Lifecycle)

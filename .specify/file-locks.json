@@ -1,6 +1,43 @@
 {
   "active_locks": [],
-  "lock_history": [],
+  "lock_history": [
+    {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/tests/contract/storage-adapter.shared.test.ts",
+      "agent_id": "test-automator-contract-1",
+      "locked_at": "2025-11-23T10:00:00Z",
+      "released_at": "2025-11-23T10:45:00Z",
+      "task_completed": true,
+      "verification_status": "passing",
+      "notes": "1,069 lines, 48 test cases, 6 main suites, reusable factory pattern"
+    },
+    {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/src/__tests__/types/SessionSerializer.test.ts",
+      "agent_id": "test-automator-serializer-1",
+      "locked_at": "2025-11-23T10:00:00Z",
+      "released_at": "2025-11-23T10:50:00Z",
+      "task_completed": true,
+      "verification_status": "passing",
+      "notes": "1,064 lines, 64 test cases (100% passing), 70.49% coverage, identified 3 critical implementation issues"
+    },
+    {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/src/persistence/FileStorageAdapter.ts",
+      "agent_id": "general-purpose-file-adapter-1",
+      "locked_at": "2025-11-23T11:00:00Z",
+      "released_at": "2025-11-23T12:00:00Z",
+      "task_completed": true,
+      "verification_status": "passing",
+      "notes": "732 lines, 48/48 contract tests passing, chmod 600, gzip compression, atomic writes"
+    },
+    {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/src/persistence/InMemoryStorageAdapter.ts",
+      "agent_id": "general-purpose-memory-adapter-1",
+      "locked_at": "2025-11-23T11:00:00Z",
+      "released_at": "2025-11-23T11:45:00Z",
+      "task_completed": true,
+      "verification_status": "passing",
+      "notes": "275 lines, 48/48 contract tests passing, <1ms operations, deep cloning"
+    }
+  ],
   "metadata": {
     "description": "File locking system for distributed agent development",
     "version": "1.0",
