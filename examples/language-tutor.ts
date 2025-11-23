@@ -24,15 +24,14 @@ async function createLanguageTutorApp() {
     llmProvider: 'openai',
     model: 'gpt-4o-mini',
     debugMode: true,
-    orchestration: true,  // ⭐ ENABLE intelligent agent orchestration
+    useInteractiveOrchestration: true,  // 🚀 NEW: Use Phase 1-3 Interactive Orchestration
+    features: {
+      realTimeMonitoring: true,         // Phase 1: Real-time monitoring
+      adaptivePlanning: true,           // Phase 3: Adaptive planning
+      predictiveRouting: true,          // Phase 3: Predictive routing
+      feedbackLearning: true            // Phase 3: Continuous learning
+    }
     
-    // Advanced orchestration configuration for language learning
-    orchestrationConfig: {
-      strategy: 'educational',
-      contextSensitivity: 0.9,        // High context awareness for learning progression
-      switchThreshold: 0.7,           // Moderate threshold for agent switching
-      maxSwitchesPerConversation: 8,  // Allow more switches for educational flow
-      learningEnabled: true,          // Learn from user interactions
       
       // Language learning specific weights
       scoringWeights: {

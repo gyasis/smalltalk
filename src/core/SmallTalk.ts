@@ -104,6 +104,9 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     });
 
     this.orchestrator.on('agent_response', (event: any) => {
+      // Monitor agent responses for limitations and trigger handoffs if needed
+      this.monitorAgentResponse(event);
+      
       // Forward agent responses to interfaces for immediate display
       this.interfaces.forEach(iface => {
         if (typeof (iface as any).displayAgentResponse === 'function') {
@@ -150,6 +153,12 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
 
   public addAgent(agent: Agent, capabilities?: AgentCapabilities): void {
     this.agents.set(agent.name, agent);
+    
+    // Bridge agent events to orchestrator for monitoring
+    agent.on('response_generated', (event: any) => {
+      // Forward to orchestrator as 'agent_response' for monitoring
+      this.orchestrator.emit('agent_response', event);
+    });
     
     // Register with orchestrator if capabilities provided
     if (capabilities && this.orchestrationEnabled) {
@@ -344,6 +353,13 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     }
 
     this.emit('mcp_enabled', { servers: servers.map(s => s.name) });
+  }
+
+  public getMCPClient(): MCPClient {
+    if (!this.mcpClient) {
+      throw new Error('MCP client is not initialized. Please call enableMCP() first.');
+    }
+    return this.mcpClient;
   }
 
   public async start(): Promise<void> {
@@ -567,7 +583,8 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
       message: userMessage,
       agent,
       tools: this.mcpClient ? await this.mcpClient.getAvailableTools() : [],
-      config: this.config
+      config: this.config,
+      mcpClient: this.mcpClient
     };
 
     // Use enhanced history management
@@ -726,6 +743,94 @@ export class SmallTalk extends EventEmitter implements SmallTalkFramework {
     }
     
     return true;
+  }
+
+  /**
+   * Monitor agent responses and trigger intelligent handoffs when limitations are detected
+   */
+  private async monitorAgentResponse(event: any): Promise<void> {
+    if (!this.orchestrationEnabled || !event.response || !event.agentName) {
+      return;
+    }
+
+    const response = event.response.toLowerCase();
+    const currentAgent = event.agentName;
+    const userId = event.userId || 'default';
+    const sessionId = event.sessionId;
+
+    // Detect when an agent admits limitations or information access issues
+    const limitationPatterns = [
+      "i don't have access to",
+      "i can't access",
+      "i don't have real-time",
+      "i cannot retrieve",
+      "i'm not able to look up",
+      "i don't have current",
+      "beyond my knowledge cutoff",
+      "i cannot browse",
+      "i don't have the ability to search"
+    ];
+
+    const needsInformation = limitationPatterns.some(pattern => response.includes(pattern));
+
+    // Check if user is asking for information retrieval
+    const lastUserMessage = event.userMessage?.toLowerCase() || '';
+    const informationRequests = [
+      'pull', 'search', 'find', 'look up', 'retrieve', 'get documentation', 
+      'research', 'what does', 'latest', 'current', 'recent'
+    ];
+    const isInformationRequest = informationRequests.some(pattern => lastUserMessage.includes(pattern));
+
+    if (needsInformation || (isInformationRequest && currentAgent !== 'RAGAgent')) {
+      if (this.config.debugMode) {
+        console.log(`[SmallTalk] 🎯 Parent Orchestrator: Detected information access limitation from ${currentAgent}`);
+        if (needsInformation) console.log(`[SmallTalk] 🚨 Agent limitation detected: needs external information`);
+        if (isInformationRequest) console.log(`[SmallTalk] 📋 Information request detected: should use RAGAgent`);
+      }
+
+      // Check if RAGAgent is available and has tools
+      const ragAgent = this.agents.get('RAGAgent');
+      if (ragAgent && ragAgent.listTools().length > 0) {
+        if (this.config.debugMode) {
+          console.log(`[SmallTalk] 🔄 Parent Orchestrator: Suggesting handoff to RAGAgent (${ragAgent.listTools().length} tools available)`);
+        }
+
+        // Force handoff to RAGAgent
+        this.currentAgents.set(userId, 'RAGAgent');
+        
+        // Emit intervention event
+        this.emit('orchestrator_intervention', {
+          reason: needsInformation ? 'agent_limitation_detected' : 'information_request_detected',
+          fromAgent: currentAgent,
+          toAgent: 'RAGAgent',
+          userId,
+          sessionId,
+          triggerResponse: event.response,
+          userMessage: lastUserMessage
+        });
+
+        // Create a helpful intervention message
+        let interventionMessage = '';
+        if (needsInformation) {
+          interventionMessage = `🎯 *Orchestrator*: I notice ${currentAgent} doesn't have access to external information. Let me hand this to RAGAgent who can search our knowledge base for current information.`;
+        } else {
+          interventionMessage = `🎯 *Orchestrator*: This looks like a research request. Let me connect you with RAGAgent who has access to our technical knowledge base.`;
+        }
+
+        // Log the intervention
+        if (this.config.debugMode) {
+          console.log(`[SmallTalk] ${interventionMessage}`);
+        }
+
+        // Store intervention for potential follow-up
+        this.emit('intervention_message', {
+          message: interventionMessage,
+          userId,
+          sessionId,
+          timestamp: new Date()
+        });
+      }
+    }
   }
 
   // Helper method to infer agent capabilities from agent properties

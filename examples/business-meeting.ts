@@ -23,7 +23,7 @@ export const playgroundConfig: PlaygroundConfig = {
 async function createBusinessMeetingApp() {
   const app = new SmallTalk({
     llmProvider: 'openai',
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     debugMode: true,
     orchestration: true
   });

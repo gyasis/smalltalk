@@ -1,3 +1,5 @@
+import { MCPClient } from '../core/MCPClient.js';
+
 export interface SmallTalkConfig {
   llmProvider?: string;
   model?: string;
@@ -176,6 +178,7 @@ export interface FlowContext {
   agent?: Agent;
   tools?: ToolDefinition[];
   config: SmallTalkConfig;
+  mcpClient?: MCPClient;
 }
 
 export interface Agent {

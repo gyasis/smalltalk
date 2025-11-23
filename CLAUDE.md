@@ -330,3 +330,9 @@ When creating or updating progress bars or task-tracking documentation, use the 
 :clock3: Waiting or delayed
 :hourglass_flowing_sand: Ongoing, in process
 :no_entry_sign: Deferred or canceled
+
+## Active Technologies
+- TypeScript 5.x (Node.js 18+) (001-production-robustness)
+
+## Recent Changes
+- 001-production-robustness: Added TypeScript 5.x (Node.js 18+)

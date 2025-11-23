@@ -480,7 +480,66 @@ async function registerMCPTools(app: SmallTalk, agent: Agent) {
 }
 ```
 
-### 3. Security Considerations
+### 3. DeepLake RAG Integration ⭐ **Featured in RAG Research Demo**
+
+**Complete vector database integration for knowledge retrieval:**
+
+```typescript
+// DeepLake RAG server configuration (from rag-research-demo.ts)
+const ragConfig = {
+  name: 'deeplake-rag',
+  type: 'stdio',
+  command: '/path/to/python3',
+  args: ['/path/to/deeplake_server/main.py'],
+  enabled: true
+};
+
+// Enable in SmallTalk application
+await app.enableMCP([ragConfig]);
+```
+
+**Available Tools:**
+
+- **`mcp__deeplake__retrieve_context`**: Semantic search with similarity scoring
+- **`mcp__deeplake__search_document_content`**: Document-specific search with fuzzy matching
+- **`mcp__deeplake__get_summary`**: Summarized results from top matches
+- **`mcp__deeplake__get_fuzzy_matching_titles`**: Knowledge base exploration
+
+**Agent Integration Example:**
+
+```typescript
+const ragAgent = new Agent({
+  name: 'RAGAgent',
+  personality: 'Expert knowledge retrieval specialist',
+  tools: [
+    {
+      name: 'rag_search',
+      handler: async ({ query, n_results = '5' }) => ({
+        tool_name: 'mcp__deeplake__retrieve_context',
+        parameters: { query, n_results, include_embeddings: false }
+      })
+    }
+  ]
+});
+```
+
+**Multi-Query RAG for Complex Research:**
+
+```typescript
+// Automatically breaks down complex queries like:
+// "Build a machine learning project using PyTorch"
+// Into targeted searches:
+const multiQueryResults = [
+  "PyTorch installation and setup",
+  "PyTorch neural network architecture",
+  "PyTorch training optimization",
+  "PyTorch deployment strategies"
+];
+```
+
+**[📖 Complete RAG Demo Guide](./examples/rag-research-demo.md)**
+
+### 4. Security Considerations
 ```typescript
 // Secure MCP server configuration
 const secureConfig = {

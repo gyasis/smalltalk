@@ -17,10 +17,20 @@ export { OrchestrationStrategy } from './core/OrchestrationStrategy.js';
 export { ReactiveChainOrchestrator } from './core/ReactiveChainOrchestrator.js';
 export { TeamCollaborationOrchestrator } from './core/TeamCollaborationOrchestrator.js';
 
-// Interactive orchestration exports (Phase 1)
+// Interactive orchestration exports (Phase 1 + Phase 2)
 export { InteractiveOrchestrator } from './core/InteractiveOrchestrator.js';
 export { RealTimeUserMonitor } from './core/RealTimeUserMonitor.js';
 export { InterruptibleExecutor } from './core/InterruptibleExecutor.js';
+
+// Phase 2: Sophisticated routing exports
+export { AgentSkillsAnalyzer } from './core/AgentSkillsAnalyzer.js';
+export { CollaborationPatternEngine } from './core/CollaborationPatternEngine.js';
+export { SequencePlanner } from './core/SequencePlanner.js';
+
+// Phase 3: Adaptive planning exports
+export { AdaptivePlanningEngine } from './core/AdaptivePlanningEngine.js';
+export { FeedbackLearner } from './core/FeedbackLearner.js';
+export { PredictiveRouter } from './core/PredictiveRouter.js';
 
 // Agent system exports
 export { Agent } from './agents/Agent.js';

@@ -17,12 +17,18 @@ export const playgroundConfig: PlaygroundConfig = {
 };
 
 async function createBasicChatApp() {
-  // Create the SmallTalk framework instance with orchestration
+  // Create the SmallTalk framework instance with Phase 1-3 Interactive Orchestration
   const app = new SmallTalk({
     llmProvider: 'openai',
     model: 'gpt-4o-mini',
     debugMode: true,
-    orchestration: true
+    useInteractiveOrchestration: true,  // 🚀 NEW: Use Phase 1-3 Interactive Orchestration
+    features: {
+      realTimeMonitoring: true,         // Phase 1: Real-time monitoring
+      adaptivePlanning: true,           // Phase 3: Adaptive planning
+      predictiveRouting: true,          // Phase 3: Predictive routing
+      feedbackLearning: true            // Phase 3: Continuous learning
+    }
   });
 
   // Create agents with capabilities for better orchestration

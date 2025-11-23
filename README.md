@@ -12,15 +12,32 @@
 
 ## 🌟 What Makes SmallTalk Special?
 
-### **🎯 Intelligent Agent Orchestration**
-SmallTalk automatically routes conversations to the perfect agent based on user intent, complexity, and expertise. No more manual agent switching!
+### **🎯 Phase 1-3 Interactive Orchestration System**
+SmallTalk features the most advanced multi-agent orchestration available, with real-time monitoring, adaptive learning, and predictive intelligence.
+
+**🚀 Phase 1: Real-Time Monitoring**
+- Live user behavior monitoring with interruption detection
+- Context-aware interaction tracking and plan adjustment
+
+**🧠 Phase 2: Sophisticated Routing (Enhanced)**  
+- LLM-powered agent analysis with advanced skills matching
+- Intelligent collaboration pattern recognition
+
+**⚡ Phase 3: Adaptive Planning (NEW)**
+- Dynamic plan adaptation using LLM reasoning
+- Continuous learning from user interactions
+- Predictive routing optimization with behavioral modeling
 
 ```typescript
 // User asks: "I'm a beginner, how do I debug JavaScript?"
-// 🎯 Orchestrator → Routes to Beginner Tutor (detected learning intent + complexity)
+// 🎯 Phase 1: Monitors interaction, detects learning intent
+// 🧠 Phase 2: Analyzes agent skills, recommends Beginner Tutor
+// ⚡ Phase 3: Learns from interaction, improves future routing
 
 // User asks: "Design a system for 1M concurrent users"  
-// 🎯 Orchestrator → Routes to System Architect (detected scale + architecture)
+// 🎯 System detects complexity shift, predicts System Architect need
+// 🧠 Advanced routing confirms optimal agent selection
+// ⚡ Adaptive planner prepares scalable architecture workflow
 ```
 
 ### **🔄 Universal LLM Support**
@@ -99,24 +116,38 @@ const expert = new Agent({
   expertise: ['system design', 'scalability', 'best practices']
 });
 
-// Create orchestrated application
+// Create Phase 1-3 Interactive Orchestration application
 const app = new SmallTalk({
-  orchestration: true,  // 🎯 Enable intelligent routing
+  useInteractiveOrchestration: true,  // 🎯 Enable Phase 1-3 system
+  features: {
+    realTimeMonitoring: true,        // Phase 1: Live user monitoring
+    adaptivePlanning: true,          // Phase 3: AI-powered plan adaptation
+    predictiveRouting: true,         // Phase 3: ML-inspired optimization
+    feedbackLearning: true           // Phase 3: Behavioral learning
+  },
   llmProvider: 'openai',
   model: 'gpt-4o'
 });
 
-// Register agents with capabilities
+// Register agents with advanced capability analysis
 app.addAgent(tutor, {
   complexity: 'basic',
   taskTypes: ['educational', 'assistance'],
-  expertise: ['teaching', 'programming basics']
+  expertise: ['teaching', 'programming basics'],
+  // Phase 2: Enhanced capabilities
+  collaborationStyle: 'supportive',
+  contextAwareness: 0.8,
+  personalityTraits: ['patient', 'encouraging']
 });
 
 app.addAgent(expert, {
   complexity: 'expert', 
   taskTypes: ['architecture', 'strategy'],
-  expertise: ['system design', 'scalability']
+  expertise: ['system design', 'scalability'],
+  // Phase 3: Adaptive learning integration
+  collaborationStyle: 'leading',
+  contextAwareness: 0.9,
+  personalityTraits: ['analytical', 'strategic']
 });
 
 await app.start();
@@ -198,45 +229,89 @@ const businessApp = new SmallTalk({
 });
 ```
 
----
-
-## 🎯 Intelligent Orchestration in Action
-
-### **🧠 How It Works**
+### **🧠 Research & Knowledge Integration** ⭐ **NEW**
 ```typescript
-// 1. User message arrives
-"I'm stuck debugging this React component"
-
-// 2. Orchestrator analyzes intent
-Intent: ["problem_solving", "help_request"]
-Topic: "React debugging"
-Complexity: 0.6 (intermediate)
-User_level: "intermediate" (inferred)
-
-// 3. Scores available agents
-Senior Developer: 0.92 (expert in debugging + React)
-Beginner Tutor: 0.34 (too basic for intermediate)
-Architect: 0.67 (relevant but not specific)
-
-// 4. Routes to best match
-🎯 Selected: Senior Developer
-Reason: "Best match for React debugging with intermediate complexity"
-Confidence: 92%
+// Advanced research platform with RAG knowledge base
+const researchApp = new SmallTalk({
+  agents: [ragAgent, brainstormAgent, apiExpert, tutor, engineer],
+  mcpServers: ['deeplake-rag'],  // Vector database integration
+  orchestration: {
+    enabled: true,
+    features: {
+      realTimeMonitoring: true,     // Phase 1
+      adaptivePlanning: true,       // Phase 3
+      predictiveRouting: true,      // Phase 3
+      feedbackLearning: true        // Phase 3
+    }
+  }
+});
 ```
 
-### **⚡ Automatic Agent Switching**
+---
+
+## 🎯 Phase 1-3 Interactive Orchestration in Action
+
+### **🧠 How the Advanced System Works**
 ```typescript
-// Conversation flows seamlessly between specialized agents
+// 1. Phase 1: Real-Time User Monitoring
+"I'm stuck debugging this React component" 
+→ User behavior: frustrated tone detected
+→ Interaction pattern: seeking immediate help
+→ Context: previous React questions in history
+
+// 2. Phase 2: Sophisticated LLM-Powered Analysis
+Intent: ["problem_solving", "help_request", "technical_assistance"]
+Topic: "React debugging" + component lifecycle analysis
+Complexity: 0.7 (intermediate-advanced)
+Emotional state: "frustrated" → needs supportive approach
+User expertise: "intermediate" (learned from interaction history)
+
+// 3. Phase 3: Predictive Agent Scoring with Learning
+Senior Developer: 0.94 (expert in debugging + React + supportive style)
+Beginner Tutor: 0.28 (too basic, but high emotional intelligence)
+Architect: 0.61 (relevant but wrong collaboration style)
+→ Predictive model: +5% confidence from similar past interactions
+→ Behavioral learning: User prefers detailed explanations
+
+// 4. Adaptive Routing Decision
+🎯 Selected: Senior Developer
+Reason: "Optimal React debugging expertise + supportive approach for frustrated intermediate user"
+Confidence: 94% (improved by predictive learning)
+Plan: Detailed debugging workflow with emotional support
+Interruption points: After each major step for user feedback
+```
+
+### **⚡ Phase 1-3 Intelligent Agent Switching**
+```typescript
+// Advanced orchestration with real-time learning and adaptation
 app.on('agent_handoff', (data) => {
   console.log(`🎯 ${data.fromAgent} → ${data.toAgent}`);
   console.log(`   Reason: ${data.reason}`);
   console.log(`   Confidence: ${data.confidence}%`);
+  console.log(`   Phase 1: ${data.realTimeSignals.join(', ')}`);
+  console.log(`   Phase 2: ${data.skillsAnalysis.matchScore}`);
+  console.log(`   Phase 3: ${data.adaptiveLearning.improvementFactor}%`);
 });
 
-// Example conversation:
-// User: "I'm new to programming"        → Beginner Tutor
-// User: "Now I need to scale to 1M users" → System Architect  
-// User: "This is confusing, explain simply" → Beginner Tutor
+// Advanced conversation flow with learning:
+// User: "I'm new to programming"        
+// → Phase 1: Detects learning intent + beginner language
+// → Phase 2: Analyzes agent teaching capabilities  
+// → Phase 3: Applies learned preferences for patient explanations
+// → Routes to: Beginner Tutor
+
+// User: "Now I need to scale to 1M users" 
+// → Phase 1: Monitors complexity shift in real-time
+// → Phase 2: Advanced skills matching for architecture
+// → Phase 3: Predictive model suggests System Architect (98% confidence)
+// → Routes to: System Architect
+
+// User: "This is confusing, explain simply"
+// → Phase 1: Detects confusion + frustration signals
+// → Phase 2: Re-evaluates agent collaboration styles
+// → Phase 3: Learns user prefers simplified explanations under stress
+// → Adaptive handoff: System Architect → Beginner Tutor
+// → Plan adaptation: Simplify architecture concepts
 ```
 
 ---
@@ -441,6 +516,22 @@ app.on('agent_handoff', (data) => {
 ---
 
 ## 📚 Complete Examples
+
+### **🧠 RAG Research & Brainstorm Hub** ⭐ **NEW**
+```bash
+smalltalk examples/rag-research-demo.ts
+# Or web interface:
+smalltalk playground examples/rag-research-demo.ts
+```
+**Advanced technical research platform** with 5 specialized agents and MCP DeepLake integration:
+- **RAGAgent**: Knowledge retrieval from technical databases
+- **BrainstormAgent**: Creative ideation and solution exploration  
+- **APIExpertAgent**: API design and integration expertise
+- **TutorAgent**: Learning paths and educational guidance
+- **EngineerAgent**: Implementation and production systems
+
+**Features**: Multi-query RAG search, Phase 1-3 orchestration, real-time knowledge synthesis
+**[📖 Complete Guide](./docs/examples/rag-research-demo.md)**
 
 ### **Language Learning Platform**
 ```bash
@@ -787,6 +878,7 @@ const app = new SmallTalk({
 - [Provider Setup](./docs/guides/providers.md)
 
 ### **💡 Examples**
+- [**🧠 RAG Research & Brainstorm Hub**](./docs/examples/rag-research-demo.md) ⭐ **NEW - Advanced Research Platform**
 - [Language Learning Tutor](./docs/examples/language-tutor.md)
 - [Medical Training System](./docs/examples/medical-tutor.md)
 - [Business Meeting Simulator](./docs/examples/business-meeting.md)
@@ -805,6 +897,7 @@ const app = new SmallTalk({
 | Feature | SmallTalk | Other Frameworks |
 |---------|-----------|------------------|
 | **🎯 Intelligent Orchestration** | ✅ Automatic agent routing | ❌ Manual switching |
+| **🧠 RAG & Knowledge Integration** | ✅ MCP vector databases, multi-query RAG | ⚠️ Basic retrieval only |
 | **🔄 LLM Providers** | ✅ 200+ models, 10+ providers | ⚠️ 1-3 providers |
 | **🎭 Agent System** | ✅ Built-in personalities & tools | ⚠️ Manual prompt engineering |
 | **🌐 Interface Options** | ✅ CLI, Web API, Web Chat | ⚠️ Usually 1 option |

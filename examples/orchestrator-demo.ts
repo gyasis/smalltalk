@@ -227,11 +227,17 @@ async function createOrchestratorDemo() {
   console.log('=====================================');
   console.log('');
   
-  // Create SmallTalk instance with orchestration enabled
+  // Create SmallTalk instance with Phase 1-3 Interactive Orchestration enabled
   const app = new SmallTalk({
     llmProvider: 'openai',
     model: 'gpt-4o-mini',
-    orchestration: true,
+    useInteractiveOrchestration: true,  // 🚀 NEW: Use Phase 1-3 Interactive Orchestration
+    features: {
+      realTimeMonitoring: true,         // Phase 1: Real-time monitoring
+      adaptivePlanning: true,           // Phase 3: Adaptive planning
+      predictiveRouting: true,          // Phase 3: Predictive routing
+      feedbackLearning: true            // Phase 3: Continuous learning
+    },
     debugMode: true
   });
 
@@ -414,9 +420,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     } else {
       // CLI mode
       const app = await initializeApp();
-      console.log('🎯 SmallTalk Orchestrator Demo');
-      console.log('=====================================');
-      console.log('✅ Orchestrator is ready! Intelligent agent routing enabled.');
+      console.log('🎯 SmallTalk Orchestrator Demo - Phase 1-3 Interactive Orchestration');
+      console.log('======================================================================');
+      console.log('✅ Interactive Orchestrator is ready! Phase 1-3 capabilities enabled.');
+      console.log('🧠 Features: Real-time monitoring, adaptive planning, predictive routing & continuous learning');
       
       console.log('\n🤖 Available Agents:');
       app.listAgents().forEach(agentName => {
@@ -424,9 +431,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         console.log(`   • ${agentName}: ${agent?.config.expertise?.join(', ')}`);
       });
 
-      console.log('\n🎯 Orchestration Features:');
-      console.log('   • Automatic agent selection based on user intent');
-      console.log('   • Smart handoffs when expertise changes');
+      console.log('\n🎯 Interactive Orchestration Features:');
+      console.log('   • Adaptive agent selection with continuous learning');
+      console.log('   • Real-time user behavior monitoring and plan adjustment');
+      console.log('   • Predictive routing based on historical patterns');
       console.log('   • Multi-step plan generation and execution');
       console.log('   • Real-time response streaming');
       console.log('   • User intervention during plan execution');

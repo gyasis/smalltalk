@@ -2,6 +2,12 @@ import { EventEmitter } from 'events';
 import { Agent } from '../agents/Agent.js';
 import { RealTimeUserMonitor, UserInterruption } from './RealTimeUserMonitor.js';
 import { InterruptibleExecutor, ExecutionPlan, ExecutionState, AgentStep, InterruptionPoint, ExecutionContext } from './InterruptibleExecutor.js';
+import { AgentSkillsAnalyzer, AgentCapabilities, SkillsMatchAnalysis } from './AgentSkillsAnalyzer.js';
+import { CollaborationPatternEngine, CollaborationRecommendation } from './CollaborationPatternEngine.js';
+import { SequencePlanner, OptimizedSequence, SequenceOptimizationOptions } from './SequencePlanner.js';
+import { AdaptivePlanningEngine, PlanAdaptation, UserFeedback } from './AdaptivePlanningEngine.js';
+import { FeedbackLearner, UserBehaviorModel } from './FeedbackLearner.js';
+import { PredictiveRouter, RoutingPrediction } from './PredictiveRouter.js';
 import { nanoid } from 'nanoid';
 
 export interface InteractiveOrchestratorConfig {
@@ -36,8 +42,19 @@ export class InteractiveOrchestrator extends EventEmitter {
   private userMonitor: RealTimeUserMonitor;
   private executor: InterruptibleExecutor;
   private config: InteractiveOrchestratorConfig;
+  private debugMode: boolean;
   private registeredAgents: Map<string, Agent> = new Map();
   private activePlans: Map<string, ExecutionPlan> = new Map();
+  
+  // Phase 2: Sophisticated Routing Components
+  private skillsAnalyzer: AgentSkillsAnalyzer;
+  private collaborationEngine: CollaborationPatternEngine;
+  private sequencePlanner: SequencePlanner;
+
+  // Phase 3: Adaptive Planning Components
+  private adaptivePlanner: AdaptivePlanningEngine;
+  private feedbackLearner: FeedbackLearner;
+  private predictiveRouter: PredictiveRouter;
 
   constructor(config: InteractiveOrchestratorConfig) {
     super();
@@ -49,21 +66,143 @@ export class InteractiveOrchestrator extends EventEmitter {
       ...config
     };
 
-    // Initialize core components
+    this.debugMode = config.debugMode || false;
+
+    // Initialize Phase 1 components
     this.userMonitor = new RealTimeUserMonitor();
     this.executor = new InterruptibleExecutor(this.userMonitor);
 
+    // Initialize Phase 2: Sophisticated Routing Components
+    this.skillsAnalyzer = new AgentSkillsAnalyzer({
+      provider: this.config.llmProvider,
+      model: this.config.model
+    });
+    
+    this.collaborationEngine = new CollaborationPatternEngine({
+      provider: this.config.llmProvider,
+      model: this.config.model
+    });
+    
+    this.sequencePlanner = new SequencePlanner({
+      provider: this.config.llmProvider,
+      model: this.config.model
+    });
+
+    // Initialize Phase 3: Adaptive Planning Components
+    this.adaptivePlanner = new AdaptivePlanningEngine({
+      provider: this.config.llmProvider,
+      model: this.config.model
+    });
+    
+    this.feedbackLearner = new FeedbackLearner();
+    this.predictiveRouter = new PredictiveRouter();
+
     this.setupEventListeners();
     
-    console.log('[🎭 InteractiveOrchestrator] Initialized with interactive orchestration capabilities');
+    console.log('[🎭 InteractiveOrchestrator] Initialized with Phase 1 + Phase 2 + Phase 3 interactive orchestration capabilities');
+    console.log('[🎭 InteractiveOrchestrator] ✅ AgentSkillsAnalyzer ready');
+    console.log('[🎭 InteractiveOrchestrator] ✅ CollaborationPatternEngine ready');
+    console.log('[🎭 InteractiveOrchestrator] ✅ SequencePlanner ready');
+    console.log('[🎭 InteractiveOrchestrator] ✅ AdaptivePlanningEngine ready');
+    console.log('[🎭 InteractiveOrchestrator] ✅ FeedbackLearner ready');
+    console.log('[🎭 InteractiveOrchestrator] ✅ PredictiveRouter ready');
   }
 
   /**
    * Register agent for orchestration
    */
-  registerAgent(agent: Agent): void {
+  registerAgent(agent: Agent, capabilities?: AgentCapabilities): void {
     this.registeredAgents.set(agent.name, agent);
-    console.log(`[🎭 InteractiveOrchestrator] ✅ Registered agent: ${agent.name}`);
+    
+    // Register capabilities with Phase 2 skills analyzer if provided
+    if (capabilities) {
+      this.skillsAnalyzer.registerAgent(agent, capabilities);
+      console.log(`[🎭 InteractiveOrchestrator] ✅ Registered agent: ${agent.name} with capabilities`);
+    } else {
+      // Auto-generate capabilities based on agent name and personality
+      const autoCapabilities = this.generateDefaultCapabilities(agent);
+      this.skillsAnalyzer.registerAgent(agent, autoCapabilities);
+      console.log(`[🎭 InteractiveOrchestrator] ✅ Registered agent: ${agent.name} with auto-generated capabilities`);
+    }
+  }
+
+  /**
+   * Auto-generate capabilities for agents without explicit capabilities
+   */
+  private generateDefaultCapabilities(agent: Agent): AgentCapabilities {
+    // Extract skills from agent name and personality
+    const name = agent.name.toLowerCase();
+    const personality = (agent.config.personality as string)?.toLowerCase() || '';
+    
+    const skillMap: Record<string, Partial<AgentCapabilities>> = {
+      'ceo': {
+        primarySkills: ['strategic-planning', 'leadership', 'business-analysis'],
+        domainExpertise: ['executive-strategy', 'company-vision', 'stakeholder-management'],
+        taskTypes: ['strategic-decisions', 'high-level-planning', 'leadership-guidance']
+      },
+      'techlead': {
+        primarySkills: ['technical-architecture', 'system-design', 'code-review'],
+        domainExpertise: ['software-engineering', 'scalability', 'technical-leadership'],
+        taskTypes: ['architecture-decisions', 'technical-analysis', 'implementation-planning']
+      },
+      'marketing': {
+        primarySkills: ['marketing-strategy', 'brand-management', 'customer-analysis'],
+        domainExpertise: ['digital-marketing', 'content-creation', 'market-research'],
+        taskTypes: ['campaign-planning', 'brand-strategy', 'market-analysis']
+      },
+      'sales': {
+        primarySkills: ['sales-strategy', 'customer-relations', 'revenue-optimization'],
+        domainExpertise: ['sales-processes', 'lead-generation', 'deal-closing'],
+        taskTypes: ['sales-planning', 'customer-outreach', 'revenue-strategies']
+      },
+      'research': {
+        primarySkills: ['data-analysis', 'market-research', 'competitive-analysis'],
+        domainExpertise: ['research-methodology', 'data-interpretation', 'trend-analysis'],
+        taskTypes: ['research-projects', 'data-collection', 'analytical-reports']
+      },
+      'finance': {
+        primarySkills: ['financial-analysis', 'budgeting', 'risk-assessment'],
+        domainExpertise: ['financial-planning', 'investment-analysis', 'cost-optimization'],
+        taskTypes: ['financial-modeling', 'budget-planning', 'roi-analysis']
+      }
+    };
+
+    // Find matching skill set
+    let matchedSkills: Partial<AgentCapabilities> = {};
+    for (const [key, skills] of Object.entries(skillMap)) {
+      if (name.includes(key)) {
+        matchedSkills = skills;
+        break;
+      }
+    }
+
+    // Default capabilities if no match found
+    if (!matchedSkills.primarySkills) {
+      matchedSkills = {
+        primarySkills: ['general-assistance', 'problem-solving'],
+        domainExpertise: ['general-knowledge'],
+        taskTypes: ['general-tasks', 'information-gathering']
+      };
+    }
+
+    // Personality-based adjustments
+    const collaborationStrengths = ['communication', 'adaptability'];
+    if (personality.includes('friendly')) collaborationStrengths.push('team-harmony');
+    if (personality.includes('analytical')) collaborationStrengths.push('detail-analysis');
+    if (personality.includes('creative')) collaborationStrengths.push('innovative-thinking');
+
+    return {
+      primarySkills: matchedSkills.primarySkills || ['general-assistance'],
+      secondarySkills: matchedSkills.primarySkills?.map(skill => `supporting-${skill}`) || ['problem-solving'],
+      domainExpertise: matchedSkills.domainExpertise || ['general-knowledge'],
+      collaborationStrengths,
+      taskTypes: matchedSkills.taskTypes || ['general-tasks'],
+      complexityHandling: 'intermediate',
+      interruptionTolerance: 'medium',
+      contextPreservation: 0.8,
+      averageResponseTime: 5000,
+      confidenceThreshold: 0.7
+    };
   }
 
   /**
@@ -75,17 +214,23 @@ export class InteractiveOrchestrator extends EventEmitter {
     userId: string,
     conversationHistory: any[] = []
   ): Promise<ExecutionState> {
-    console.log(`\n[🎭 InteractiveOrchestrator] 🚀 ORCHESTRATING REQUEST`);
-    console.log(`[🎭 InteractiveOrchestrator] 📝 Message: "${message}"`);
-    console.log(`[🎭 InteractiveOrchestrator] 👤 User: ${userId} | Session: ${sessionId}`);
+    if (this.debugMode) {
+      console.log(`\n[🎭 InteractiveOrchestrator] 🚀 ORCHESTRATING REQUEST`);
+      console.log(`[🎭 InteractiveOrchestrator] 📝 Message: "${message.substring(0, 50)}..."`);
+      console.log(`[🎭 InteractiveOrchestrator] 👤 User: ${userId} | Session: ${sessionId}`);
+    }
 
     try {
-      // Phase 1: Heavy Agent Skills Analysis & Routing
-      console.log(`[🎭 InteractiveOrchestrator] 🧠 Phase 1: Analyzing agent skills and routing...`);
-      const routingDecision = await this.analyzeAndRoute(message, conversationHistory);
+      // Phase 3: Adaptive Agent Analysis & Predictive Routing
+      if (this.debugMode) {
+        console.log(`[🎭 InteractiveOrchestrator] 🧠 Phase 3: Adaptive analysis and predictive routing...`);
+      }
+      const routingDecision = await this.analyzeAndRoute(message, conversationHistory, userId);
       
       // Phase 2: Create Execution Plan with Interruption Points
-      console.log(`[🎭 InteractiveOrchestrator] 📋 Phase 2: Creating execution plan...`);
+      if (this.debugMode) {
+        console.log(`[🎭 InteractiveOrchestrator] 📋 Phase 2: Creating execution plan...`);
+      }
       const executionPlan = await this.createExecutionPlan(message, routingDecision, {
         sessionId,
         userId,
@@ -95,10 +240,14 @@ export class InteractiveOrchestrator extends EventEmitter {
       });
 
       // Phase 3: Execute with Real-Time Interaction
-      console.log(`[🎭 InteractiveOrchestrator] ⚡ Phase 3: Executing with real-time interaction...`);
+      if (this.debugMode) {
+        console.log(`[🎭 InteractiveOrchestrator] ⚡ Phase 3: Executing with real-time interaction...`);
+      }
       const executionResult = await this.executor.executeWithInterruption(executionPlan);
 
-      console.log(`[🎭 InteractiveOrchestrator] ✅ Orchestration completed successfully`);
+      if (this.debugMode) {
+        console.log(`[🎭 InteractiveOrchestrator] ✅ Orchestration completed successfully`);
+      }
       return executionResult;
 
     } catch (error) {
@@ -108,184 +257,108 @@ export class InteractiveOrchestrator extends EventEmitter {
   }
 
   /**
-   * Phase 1: Heavy agent skills analysis and routing
+   * Phase 3: Adaptive routing with predictive optimization and learning
    */
-  private async analyzeAndRoute(message: string, conversationHistory: any[]): Promise<RoutingDecision> {
+  private async analyzeAndRoute(message: string, conversationHistory: any[], userId: string = 'default'): Promise<RoutingDecision> {
     const availableAgents = Array.from(this.registeredAgents.values());
     
     if (availableAgents.length === 0) {
       throw new Error('No agents registered for orchestration');
     }
 
-    // Sophisticated skills analysis (heavy LLM processing)
-    const skillsAnalysis = await this.performDeepSkillsAnalysis(message, availableAgents);
-    
-    // Collaboration pattern detection
-    const collaborationNeeds = await this.analyzeCollaborationRequirements(message, skillsAnalysis);
-    
-    // Optimal agent selection and sequencing
-    const selectedAgents = this.selectOptimalAgents(skillsAnalysis, collaborationNeeds);
-    const interruptionPoints = this.identifyInterruptionPoints(selectedAgents, message);
+    console.log(`[🎭 InteractiveOrchestrator] 🧠 Phase 3: Starting adaptive analysis with predictive routing...`);
+
+    // Get user behavior model for adaptive routing
+    const userModel = this.feedbackLearner.getUserModel(userId);
+    const recentExecutions: ExecutionState[] = [];
+
+    // Step 1: Predictive routing analysis
+    if (this.debugMode) {
+      console.log(`[🎭 InteractiveOrchestrator] 🔮 Step 1: Predictive routing analysis...`);
+    }
+    const conversationContext = conversationHistory.map(h => h.content || h.message || '').filter(Boolean);
+    const skillsAnalyses = await this.skillsAnalyzer.performDeepSkillsAnalysis(
+      message, 
+      availableAgents, 
+      conversationContext
+    );
+
+    const routingPrediction = this.predictiveRouter.predictOptimalRoute(
+      message,
+      userId,
+      availableAgents,
+      skillsAnalyses,
+      userModel,
+      recentExecutions
+    );
+
+    // Step 2: Enhanced collaboration pattern detection with adaptive learning
+    if (this.debugMode) {
+      console.log(`[🎭 InteractiveOrchestrator] 🤝 Step 2: Enhanced collaboration pattern detection...`);
+    }
+    const collaborationRecommendation = await this.collaborationEngine.detectOptimalPattern(
+      message,
+      skillsAnalyses,
+      conversationContext
+    );
+
+    // Step 3: Adaptive sequence planning using predictive insights
+    if (this.debugMode) {
+      console.log(`[🎭 InteractiveOrchestrator] 📋 Step 3: Adaptive sequence planning...`);
+    }
+    const selectedAgents = routingPrediction.primaryRoute.agents.length > 0 
+      ? routingPrediction.primaryRoute.agents 
+      : collaborationRecommendation.selectedAgents;
+
+    const optimizedSequence = await this.sequencePlanner.createOptimalSequence(
+      message,
+      collaborationRecommendation,
+      skillsAnalyses
+    );
+
+    // Extract interruption points from optimized sequence
+    const interruptionPoints = optimizedSequence.interruptionPoints;
+
+    // Calculate overall confidence from skills analyses
+    const overallConfidence = Math.round(
+      skillsAnalyses.reduce((sum, analysis) => sum + analysis.confidence, 0) / skillsAnalyses.length * 100
+    );
+
+    // Phase 3: Combine predictive insights with sophisticated analysis
+    const finalPattern = routingPrediction.primaryRoute.pattern !== 'sequential' 
+      ? routingPrediction.primaryRoute.pattern 
+      : collaborationRecommendation.pattern.name;
+
+    const finalConfidence = Math.max(overallConfidence / 100, routingPrediction.primaryRoute.confidence);
+    const predictiveReasonig = `Predictive routing (${Math.round(routingPrediction.primaryRoute.confidence * 100)}% confidence) combined with ${collaborationRecommendation.reasoning}`;
 
     const routingDecision: RoutingDecision = {
       selectedAgents,
-      collaborationPattern: collaborationNeeds.pattern,
-      confidence: skillsAnalysis.overallConfidence,
-      reasoning: skillsAnalysis.reasoning,
-      estimatedDuration: this.estimateExecutionDuration(selectedAgents),
+      collaborationPattern: finalPattern as 'sequential' | 'parallel' | 'debate' | 'review',
+      confidence: Math.round(finalConfidence * 100),
+      reasoning: predictiveReasonig,
+      estimatedDuration: Math.round(routingPrediction.primaryRoute.estimatedDuration || optimizedSequence.totalDuration),
       interruptionPoints
     };
 
-    console.log(`[🎭 InteractiveOrchestrator] 🎯 Routing Decision:`);
-    console.log(`  Selected Agents: ${selectedAgents.map(a => a.name).join(', ')}`);
-    console.log(`  Collaboration: ${collaborationNeeds.pattern}`);
-    console.log(`  Confidence: ${skillsAnalysis.overallConfidence}%`);
-    console.log(`  Interruption Points: ${interruptionPoints.length}`);
+    if (this.debugMode) {
+      console.log(`[🎭 InteractiveOrchestrator] 🎯 Phase 3 Adaptive Routing Decision:`);
+      console.log(`  Selected Agents: ${selectedAgents.map(a => a.name).join(', ')}`);
+      console.log(`  Collaboration: ${finalPattern}`);
+      console.log(`  Confidence: ${Math.round(finalConfidence * 100)}%`);
+      console.log(`  Predicted Satisfaction: ${Math.round(routingPrediction.primaryRoute.estimatedSatisfaction * 100)}%`);
+    }
+    if (this.debugMode) {
+      console.log(`  Interruption Points: ${interruptionPoints.length}`);
+      console.log(`  Risk Factors: ${routingPrediction.riskFactors.length}`);
+      console.log(`  Optimization Opportunities: ${routingPrediction.optimizationOpportunities.length}`);
+    }
 
     return routingDecision;
   }
 
-  /**
-   * Perform deep skills analysis using LLM reasoning
-   */
-  private async performDeepSkillsAnalysis(message: string, agents: Agent[]): Promise<any> {
-    // Mock implementation - in real system, would use TokenJS/LLM for analysis
-    console.log(`[🎭 InteractiveOrchestrator] 🔍 Performing deep skills analysis...`);
-    
-    // Analyze each agent's capability match
-    const agentAnalysis = agents.map(agent => ({
-      agent: agent.name,
-      skillMatch: this.calculateSkillMatch(message, agent),
-      capabilities: this.extractAgentCapabilities(agent),
-      suitability: Math.floor(Math.random() * 100) + 1 // Mock score
-    }));
 
-    // Sort by suitability
-    agentAnalysis.sort((a, b) => b.suitability - a.suitability);
 
-    return {
-      agentAnalysis,
-      overallConfidence: Math.floor(Math.random() * 30) + 70, // Mock: 70-100%
-      reasoning: `Based on skill analysis, ${agentAnalysis[0].agent} is most suitable for this request due to strong capability match.`,
-      topCandidates: agentAnalysis.slice(0, 3)
-    };
-  }
-
-  /**
-   * Calculate skill match between message and agent
-   */
-  private calculateSkillMatch(message: string, agent: Agent): number {
-    // Mock implementation - in real system would use sophisticated matching
-    const messageLower = message.toLowerCase();
-    
-    // Basic keyword matching for demo
-    if (agent.name.includes('CEO') && (messageLower.includes('strategy') || messageLower.includes('business'))) {
-      return 90;
-    }
-    if (agent.name.includes('TechLead') && (messageLower.includes('technical') || messageLower.includes('architecture'))) {
-      return 95;
-    }
-    if (agent.name.includes('Marketing') && messageLower.includes('marketing')) {
-      return 85;
-    }
-    
-    return Math.floor(Math.random() * 50) + 25; // Random 25-75%
-  }
-
-  /**
-   * Extract agent capabilities for analysis
-   */
-  private extractAgentCapabilities(agent: Agent): string[] {
-    // Mock implementation - would extract from agent configuration
-    const capabilityMap: Record<string, string[]> = {
-      'CEO': ['strategy', 'leadership', 'business-planning', 'decision-making'],
-      'TechLead': ['architecture', 'technical-analysis', 'scalability', 'implementation'],
-      'MarketingLead': ['marketing-strategy', 'branding', 'customer-analysis', 'campaigns'],
-      'SalesChief': ['sales-strategy', 'revenue-optimization', 'customer-relations'],
-      'ResearchPro': ['market-research', 'competitive-analysis', 'data-analysis'],
-      'ProjectManager': ['project-planning', 'coordination', 'timeline-management'],
-      'FinanceAdvisor': ['financial-analysis', 'budgeting', 'roi-calculation', 'risk-assessment']
-    };
-
-    return capabilityMap[agent.name] || ['general'];
-  }
-
-  /**
-   * Analyze collaboration requirements
-   */
-  private async analyzeCollaborationRequirements(message: string, skillsAnalysis: any): Promise<any> {
-    console.log(`[🎭 InteractiveOrchestrator] 🤝 Analyzing collaboration requirements...`);
-    
-    const messageLower = message.toLowerCase();
-    
-    // Detect collaboration patterns
-    let pattern: 'sequential' | 'parallel' | 'debate' | 'review' = 'sequential';
-    let requiresMultipleAgents = false;
-
-    if (messageLower.includes('collaborate') || messageLower.includes('work together')) {
-      requiresMultipleAgents = true;
-      pattern = 'parallel';
-    }
-    
-    if (messageLower.includes('debate') || messageLower.includes('different perspectives')) {
-      requiresMultipleAgents = true;
-      pattern = 'debate';
-    }
-
-    if (messageLower.includes('review') || messageLower.includes('analyze')) {
-      pattern = 'review';
-    }
-
-    // Check if multiple skills needed
-    const topAgents = skillsAnalysis.topCandidates.slice(0, 2);
-    if (topAgents.length > 1 && Math.abs(topAgents[0].suitability - topAgents[1].suitability) < 20) {
-      requiresMultipleAgents = true;
-    }
-
-    return {
-      pattern,
-      requiresMultipleAgents,
-      recommendedAgentCount: requiresMultipleAgents ? Math.min(3, skillsAnalysis.topCandidates.length) : 1
-    };
-  }
-
-  /**
-   * Select optimal agents based on analysis
-   */
-  private selectOptimalAgents(skillsAnalysis: any, collaborationNeeds: any): Agent[] {
-    const candidateCount = collaborationNeeds.requiresMultipleAgents ? 
-      collaborationNeeds.recommendedAgentCount : 1;
-
-    const selectedAgentNames = skillsAnalysis.topCandidates
-      .slice(0, candidateCount)
-      .map((analysis: any) => analysis.agent);
-
-    return selectedAgentNames
-      .map((name: string) => this.registeredAgents.get(name))
-      .filter((agent: Agent | undefined): agent is Agent => agent !== undefined);
-  }
-
-  /**
-   * Identify safe interruption points in execution
-   */
-  private identifyInterruptionPoints(agents: Agent[], message: string): InterruptionPoint[] {
-    return agents.map((agent, index) => ({
-      stepIndex: index,
-      agentName: agent.name,
-      interruptionSafety: index === 0 ? 'safe' : 'warning', // First agent is always safe to interrupt
-      contextPreservation: 0.8 - (index * 0.1) // Context preservation decreases with depth
-    }));
-  }
-
-  /**
-   * Estimate execution duration
-   */
-  private estimateExecutionDuration(agents: Agent[]): number {
-    // Mock implementation - estimate based on agent count and complexity
-    const baseTime = 30000; // 30 seconds base
-    const agentTime = agents.length * 15000; // 15 seconds per agent
-    return baseTime + agentTime;
-  }
 
   /**
    * Create execution plan with interruption support
@@ -468,6 +541,125 @@ export class InteractiveOrchestrator extends EventEmitter {
       isMonitoring: this.userMonitor.isMonitoring(),
       monitoringStats: this.userMonitor.getStatistics(),
       currentExecution: this.executor.getCurrentExecution()
+    };
+  }
+
+  /**
+   * Phase 3: Handle user feedback and adapt plan dynamically
+   */
+  async handleUserFeedback(
+    planId: string,
+    feedback: UserFeedback,
+    userId: string
+  ): Promise<PlanAdaptation | null> {
+    console.log(`[🎭 InteractiveOrchestrator] 🔄 Processing user feedback for plan: ${planId}`);
+
+    const executionPlan = this.activePlans.get(planId);
+    if (!executionPlan) {
+      console.log(`[🎭 InteractiveOrchestrator] ⚠️ Plan not found: ${planId}`);
+      return null;
+    }
+
+    const executionState = this.executor.getCurrentExecution();
+    if (!executionState || executionState.plan.id !== planId) {
+      console.log(`[🎭 InteractiveOrchestrator] ⚠️ No active execution for plan: ${planId}`);
+      return null;
+    }
+
+    // Process feedback with learning system
+    this.feedbackLearner.processFeedback(userId, feedback, {
+      agentUsed: executionPlan.executionSequence[executionState.currentStep]?.agentName || 'unknown',
+      pattern: executionPlan.collaborationPattern || 'sequential',
+      duration: Date.now() - (executionState.startTime?.getTime() || 0),
+      interruptionOccurred: (executionState.interruptionHistory?.length || 0) > 0
+    });
+
+    // Get adaptive plan recommendation
+    const availableAgents = Array.from(this.registeredAgents.values());
+    const adaptation = await this.adaptivePlanner.adaptPlanBasedOnFeedback(
+      executionPlan,
+      feedback,
+      executionState,
+      availableAgents
+    );
+
+    // Apply adaptation if confidence is high enough
+    if (adaptation.confidence > 0.7) {
+      console.log(`[🎭 InteractiveOrchestrator] ✅ Applying plan adaptation: ${adaptation.adaptationType}`);
+      
+      // Emit adaptation event for UI/monitoring
+      this.emit('plan-adaptation', {
+        planId,
+        adaptation,
+        userId,
+        timestamp: new Date()
+      });
+      
+      return adaptation;
+    } else {
+      console.log(`[🎭 InteractiveOrchestrator] ⚠️ Adaptation confidence too low (${Math.round(adaptation.confidence * 100)}%)`);
+      return null;
+    }
+  }
+
+  /**
+   * Phase 3: Update routing metrics based on execution outcome
+   */
+  updateRoutingMetrics(
+    userId: string,
+    planId: string,
+    outcome: {
+      success: boolean;
+      satisfaction: number;
+      duration: number;
+      interruptions: number;
+    }
+  ): void {
+    const plan = this.activePlans.get(planId);
+    if (!plan) return;
+
+    console.log(`[🎭 InteractiveOrchestrator] 📊 Updating routing metrics for plan: ${planId}`);
+
+    // Update predictive router metrics
+    this.predictiveRouter.updateRoutingMetrics(
+      userId,
+      plan.userIntent,
+      plan.selectedAgents,
+      plan.collaborationPattern,
+      outcome
+    );
+
+    // Update agent performance metrics in adaptive planner
+    for (const agent of plan.selectedAgents) {
+      this.adaptivePlanner.updateAgentPerformanceMetrics(agent.name, {
+        success: outcome.success,
+        responseTime: outcome.duration / plan.selectedAgents.length,
+        userSatisfaction: outcome.satisfaction,
+        wasInterrupted: outcome.interruptions > 0
+      });
+    }
+
+    console.log(`[🎭 InteractiveOrchestrator] ✅ Metrics updated successfully`);
+  }
+
+  /**
+   * Phase 3: Get adaptive insights and recommendations
+   */
+  getAdaptiveInsights(userId?: string): {
+    behaviorModel: UserBehaviorModel | null;
+    learningInsights: any[];
+    routingRecommendations: string[];
+    performanceMetrics: any;
+  } {
+    return {
+      behaviorModel: userId ? this.feedbackLearner.getUserModel(userId) : null,
+      learningInsights: this.feedbackLearner.getLearningInsights(userId),
+      routingRecommendations: this.predictiveRouter.getRoutingRecommendations(),
+      performanceMetrics: {
+        agentPerformance: this.adaptivePlanner.getAgentPerformanceReport(),
+        routingMetrics: this.predictiveRouter.getMetrics(),
+        learningPatterns: this.adaptivePlanner.getLearningPatterns()
+      }
     };
   }
 

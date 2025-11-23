@@ -1,0 +1,39 @@
+{
+  "active_locks": [],
+  "lock_history": [],
+  "metadata": {
+    "description": "File locking system for distributed agent development",
+    "version": "1.0",
+    "created": "2025-11-23",
+    "schema": {
+      "active_locks": [
+        {
+          "file_path": "string (absolute path)",
+          "agent_id": "string (agent identifier)",
+          "agent_type": "string (main|subagent_type)",
+          "task_description": "string",
+          "locked_at": "ISO 8601 timestamp",
+          "expected_completion": "ISO 8601 timestamp"
+        }
+      ],
+      "lock_history": [
+        {
+          "file_path": "string",
+          "agent_id": "string",
+          "locked_at": "ISO 8601 timestamp",
+          "released_at": "ISO 8601 timestamp",
+          "task_completed": "boolean",
+          "verification_status": "passing|failing|skipped"
+        }
+      ]
+    }
+  },
+  "usage_notes": [
+    "Before any agent (main or sub) modifies a file, it MUST:",
+    "1. Check active_locks array for the target file_path",
+    "2. If locked by another agent, WAIT or REASSIGN task",
+    "3. If unlocked, add entry to active_locks with current timestamp",
+    "4. After task completion + verification, move entry to lock_history",
+    "5. Update Memory Bank and Git ATOMICALLY after lock release"
+  ]
+}

@@ -150,9 +150,7 @@ Please respond as {{agentName}} maintaining your personality and expertise.
       const systemPrompt = this.buildSystemPrompt();
       const contextMessages = this.prepareContextMessages(context, message);
 
-      // Check for tool usage in the message
-      const shouldUseTool = this.shouldUseTools(message);
-      const availableTools = shouldUseTool ? Array.from(this.tools.values()) : [];
+      const availableTools = Array.from(this.tools.values());
 
       const response = await this.llmWrapper.generateResponse(
         contextMessages,
@@ -173,7 +171,10 @@ Please respond as {{agentName}} maintaining your personality and expertise.
         agentName: this.name,
         message,
         response: response.content,
-        context: context.session.id
+        context: context.session.id,
+        sessionId: context.session.id,
+        userId: (context as any).userId || 'default',
+        userMessage: message
       });
 
       return response.content;
@@ -200,6 +201,22 @@ Please respond as {{agentName}} maintaining your personality and expertise.
     // Get recent messages from session
     const recentMessages = context.session.messages.slice(-10); // Last 10 messages for context
     
+    // Check if this is a handoff situation (different agent than last message)
+    const lastMessage = recentMessages[recentMessages.length - 1];
+    const isHandoff = lastMessage && lastMessage.agentName && lastMessage.agentName !== this.name;
+    
+    // If this is a handoff, add context about the conversation history
+    const contextualMessages = [...recentMessages];
+    if (isHandoff) {
+      const handoffContextMessage: ChatMessage = {
+        id: nanoid(),
+        role: 'system',
+        content: `Previous conversation context: The user has been interacting with ${lastMessage.agentName}. Please review the conversation history above and maintain continuity with previous responses while applying your unique expertise to help the user.`,
+        timestamp: new Date()
+      };
+      contextualMessages.push(handoffContextMessage);
+    }
+    
     // Add current user message
     const currentMessage: ChatMessage = {
       id: nanoid(),
@@ -208,24 +225,11 @@ Please respond as {{agentName}} maintaining your personality and expertise.
       timestamp: new Date()
     };
 
-    return [...recentMessages, currentMessage];
-  }
-
-  private shouldUseTools(message: string): boolean {
-    if (this.tools.size === 0) return false;
-
-    // Simple heuristics to determine if tools might be needed
-    const toolKeywords = [
-      'search', 'find', 'lookup', 'calculate', 'compute', 'execute',
-      'run', 'call', 'get', 'fetch', 'retrieve', 'query', 'analyze'
-    ];
-
-    const lowerMessage = message.toLowerCase();
-    return toolKeywords.some(keyword => lowerMessage.includes(keyword));
+    return [...contextualMessages, currentMessage];
   }
 
   private async handleToolCalls(
-    toolCalls: Array<{ name: string; parameters: Record<string, unknown> }>,
+    toolCalls: Array<{ name: string; parameters: Record<string, unknown> }>, 
     originalResponse: string,
     context: FlowContext
   ): Promise<string> {
@@ -233,7 +237,31 @@ Please respond as {{agentName}} maintaining your personality and expertise.
 
     for (const toolCall of toolCalls) {
       try {
-        const result = await this.llmWrapper.executeToolCall(toolCall, Array.from(this.tools.values()));
+        let result = await this.llmWrapper.executeToolCall(toolCall, Array.from(this.tools.values()));
+
+        // Check if the result is an MCP tool call delegation
+        if (result && typeof result === 'object' && 'tool_name' in result && typeof result.tool_name === 'string' && result.tool_name.startsWith('mcp__')) {
+          if (context.mcpClient) {
+            const mcpToolName = result.tool_name as string;
+            const mcpParameters = ((result as any).parameters || {}) as Record<string, unknown>;
+            
+            const [_, serverName, toolName] = mcpToolName.split('__');
+
+            if (serverName && toolName) {
+              try {
+                console.log(`[Agent:${this.name}] Calling MCP tool: ${serverName}.${toolName}`);
+                result = await context.mcpClient.executeTool(serverName, toolName, mcpParameters);
+              } catch (mcpError) {
+                throw new Error(`MCP tool call failed: ${mcpError instanceof Error ? mcpError.message : String(mcpError)}`);
+              }
+            } else {
+              throw new Error(`Invalid MCP tool name format: ${mcpToolName}`);
+            }
+          } else {
+            throw new Error('MCP client is not available to handle MCP tool call.');
+          }
+        }
+        
         toolResults.push(`${toolCall.name}: ${JSON.stringify(result)}`);
         
         this.emit('tool_executed', {
@@ -245,6 +273,7 @@ Please respond as {{agentName}} maintaining your personality and expertise.
         });
       } catch (error) {
         const errorMsg = `Tool ${toolCall.name} failed: ${error instanceof Error ? error.message : String(error)}`;
+        console.error(`[Agent:${this.name}] Tool Error for '${toolCall.name}':`, error);
         toolResults.push(errorMsg);
         
         this.emit('tool_error', {
@@ -257,12 +286,7 @@ Please respond as {{agentName}} maintaining your personality and expertise.
     }
 
     // Generate final response incorporating tool results
-    const finalPrompt = `${originalResponse}
-
-Tool execution results:
-${toolResults.join('\n')}
-
-Please provide a complete response incorporating these tool results.`;
+    const finalPrompt = `${originalResponse}\n\nTool execution results:\n${toolResults.join('\n')}\n\nPlease provide a complete response incorporating these tool results.`;
 
     const finalResponse = await this.llmWrapper.generateResponse([
       {

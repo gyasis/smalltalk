@@ -569,11 +569,17 @@ interface AgentPerformance {
   contextRetention: number;
 }
 
-// Create the SmallTalk application with advanced orchestration
+// Create the SmallTalk application with Phase 1-3 Interactive Orchestration
 const app = new SmallTalk({
   llmProvider: 'openai',
   model: 'gpt-4o-mini',
-  orchestration: true,
+  useInteractiveOrchestration: true,  // 🚀 NEW: Use Phase 1-3 Interactive Orchestration
+  features: {
+    realTimeMonitoring: true,         // Phase 1: Real-time monitoring
+    adaptivePlanning: true,           // Phase 3: Adaptive planning
+    predictiveRouting: true,          // Phase 3: Predictive routing
+    feedbackLearning: true            // Phase 3: Continuous learning
+  },
   debugMode: true
 });
 
@@ -676,4 +682,5 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     await app.start();
   })();
 }
+
 
