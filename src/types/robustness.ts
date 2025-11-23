@@ -288,3 +288,120 @@ export class ValidationError extends StorageError {
     this.name = 'ValidationError';
   }
 }
+
+/**
+ * Agent health state enumeration
+ *
+ * Represents the health status of an agent.
+ * FR-006, FR-007: Health states for heartbeat monitoring
+ */
+export enum HealthState {
+  /** Agent is healthy and responding to heartbeats */
+  HEALTHY = 'healthy',
+  /** Agent has missed heartbeats and is considered disconnected */
+  DISCONNECTED = 'disconnected',
+  /** Agent is responding to heartbeats but failing liveness probes (zombie) */
+  ZOMBIE = 'zombie',
+  /** Agent is currently recovering from a failure */
+  RECOVERING = 'recovering',
+  /** Agent is in degraded mode with incomplete context */
+  DEGRADED = 'degraded',
+  /** Agent has failed recovery attempts */
+  FAILED = 'failed',
+}
+
+/**
+ * Recovery strategy enumeration
+ *
+ * Defines available recovery strategies for failed agents.
+ * FR-008: Configurable recovery strategies
+ */
+export enum RecoveryStrategy {
+  /** Restart the agent process */
+  RESTART = 'restart',
+  /** Replace with a new agent instance */
+  REPLACE = 'replace',
+  /** Alert operators without automatic recovery */
+  ALERT = 'alert',
+  /** No recovery action */
+  NONE = 'none',
+}
+
+/**
+ * Agent health status
+ *
+ * Complete health information for a single agent.
+ */
+export interface AgentHealthStatus {
+  /** Agent identifier */
+  agentId: string;
+  /** Current health state */
+  state: HealthState;
+  /** Last successful heartbeat timestamp */
+  lastHeartbeat: number;
+  /** Last successful liveness probe timestamp */
+  lastLivenessCheck?: number;
+  /** Consecutive missed heartbeats */
+  missedHeartbeats: number;
+  /** Recovery strategy assigned to this agent */
+  recoveryStrategy: RecoveryStrategy;
+  /** Recovery attempt count */
+  recoveryAttempts: number;
+  /** Last error message if any */
+  lastError?: string;
+  /** Additional metadata */
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Event priority enumeration
+ *
+ * Defines priority levels for events.
+ * FR-016a, FR-016b: Event priority for replay policies
+ */
+export enum EventPriority {
+  /** Critical events that must always be replayed */
+  CRITICAL = 'critical',
+  /** Normal priority events */
+  NORMAL = 'normal',
+}
+
+/**
+ * Event replay policy enumeration
+ *
+ * Defines how events should be replayed during recovery.
+ * FR-016a, FR-016b, FR-016c: Event replay policies
+ */
+export enum EventReplayPolicy {
+  /** Do not replay any events */
+  NONE = 'none',
+  /** Replay all events */
+  FULL = 'full',
+  /** Replay only critical priority events (default) */
+  CRITICAL_ONLY = 'critical_only',
+}
+
+/**
+ * Event entity
+ *
+ * Represents a single event in the event bus.
+ * FR-011, FR-011a: Event structure with unique IDs
+ */
+export interface Event {
+  /** Unique event identifier (UUID v4) */
+  id: string;
+  /** Event topic */
+  topic: string;
+  /** Event payload */
+  payload: any;
+  /** Event priority */
+  priority: EventPriority;
+  /** Publish timestamp */
+  timestamp: number;
+  /** Session ID for session-scoped events */
+  sessionId?: string;
+  /** Conversation ID for conversation-scoped events */
+  conversationId?: string;
+  /** Event metadata */
+  metadata?: Record<string, any>;
+}

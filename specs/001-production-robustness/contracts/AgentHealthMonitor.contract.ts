@@ -8,8 +8,14 @@
  * @see research.md Section 5 - Heartbeat Mechanism Design
  */
 
-import { Agent } from '../../../src/agents/Agent.js';
 import { AgentHealthStatus, HealthState, RecoveryStrategy } from '../../../src/types/robustness.js';
+
+/**
+ * Agent interface (minimal to avoid importing full Agent class)
+ */
+export interface Agent {
+  readonly name: string;
+}
 
 /**
  * Health monitor configuration
