@@ -811,7 +811,7 @@ export function runSessionManagerContractTests(
         await manager.saveSession(session);
 
         const agentState = {
-          config: { model: 'gpt-4' },
+          config: { model: 'gpt-4o-mini' },
           context: { newAgent: true },
           messageHistory: [],
         };
@@ -909,7 +909,7 @@ export function runSessionManagerContractTests(
         const session = createTestSession({
           agentStates: {
             agent1: {
-              config: { model: 'gpt-4', temperature: 0.7 },
+              config: { model: 'gpt-4o-mini', temperature: 0.7 },
               context: { specialization: 'coding' },
               messageHistory: [],
             },

@@ -115,7 +115,7 @@ function createTestSession(overrides?: Partial<Session>): Session {
     agentIds: ['agent-1', 'agent-2'],
     agentStates: {
       'agent-1': {
-        config: { model: 'gpt-4', temperature: 0.7 },
+        config: { model: 'gpt-4o-mini', temperature: 0.7 },
         context: createAgentContext(),
         messageHistory: [createMessageTurn(1), createMessageTurn(2)],
       },
@@ -379,7 +379,7 @@ export function runStorageAdapterContractTests(
         expect(Object.keys(retrieved!.agentStates)).toHaveLength(2);
         expect(retrieved!.agentStates['agent-1']).toBeDefined();
         expect(retrieved!.agentStates['agent-1'].config).toEqual({
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           temperature: 0.7,
         });
         expect(retrieved!.agentStates['agent-1'].context).toBeDefined();
