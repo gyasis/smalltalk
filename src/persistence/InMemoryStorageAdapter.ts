@@ -75,6 +75,19 @@ export class InMemoryStorageAdapter implements StorageAdapter {
   // ==========================================================================
 
   async saveSession(session: Session): Promise<void> {
+    // Import ConflictError from robustness types
+    const { ConflictError } = await import('../types/robustness');
+
+    // Check version conflict atomically (for optimistic locking)
+    const existing = this.sessions.get(session.id);
+    if (existing && existing.version >= session.version) {
+      // Version conflict - another save happened concurrently
+      throw new ConflictError(
+        `Version conflict: trying to save version ${session.version}, but storage has version ${existing.version}`,
+        [session.version, existing.version]
+      );
+    }
+
     // Deep clone via serialization round-trip to prevent mutation
     const serialized = SessionSerializer.toJSON(session);
     const cloned = SessionSerializer.fromJSON(serialized);

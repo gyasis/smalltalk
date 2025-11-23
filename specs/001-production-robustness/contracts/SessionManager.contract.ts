@@ -8,7 +8,22 @@
  * @see research.md Section 3 - Session Storage Backend
  */
 
-import { Session, SessionState, Message, AgentState } from '../../../src/types/robustness.js';
+import { Session, SessionState, MessageTurn, AgentContext } from '../../../src/types/robustness.js';
+
+/**
+ * Message type alias for addMessage() API
+ * Tests use MessageTurn, contract uses Message for clarity
+ */
+export type Message = MessageTurn;
+
+/**
+ * AgentState type for updateAgentState() API
+ */
+export interface AgentState {
+  config: Record<string, any>;
+  context: AgentContext;
+  messageHistory: MessageTurn[];
+}
 
 /**
  * Session creation options

@@ -1,5 +1,14 @@
 {
-  "active_locks": [],
+  "active_locks": [
+    {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/src/session/SessionManager.ts",
+      "agent_id": "typescript-architect-session-manager-1",
+      "agent_type": "typescript-architect",
+      "task_description": "SessionManager implementation (Tasks 3.2-3.10): pass all 74 contract tests",
+      "locked_at": "2025-11-23T13:15:00Z",
+      "expected_completion": "2025-11-23T17:00:00Z"
+    }
+  ],
   "lock_history": [
     {
       "file_path": "/home/gyasis/Documents/code/smalltalk/tests/contract/storage-adapter.shared.test.ts",
