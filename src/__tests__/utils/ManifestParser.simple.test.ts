@@ -297,7 +297,7 @@ capabilities:
       const jsonContent = JSON.stringify({
         config: {
           name: 'JSONContentTest',
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           temperature: 0.3
         },
         capabilities: {
@@ -308,7 +308,7 @@ capabilities:
       const parsed = parser.parseManifestContent(jsonContent, 'test.json');
 
       expect(parsed.config.name).toBe('JSONContentTest');
-      expect(parsed.config.model).toBe('gpt-4');
+      expect(parsed.config.model).toBe('gpt-4o-mini');
       expect(parsed.config.temperature).toBe(0.3);
       expect(parsed.capabilities?.complexity).toBe('expert');
     });

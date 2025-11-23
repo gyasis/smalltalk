@@ -32,7 +32,7 @@ function createTestSession(overrides?: Partial<Session>): Session {
     agentIds: ['agent1', 'agent2'],
     agentStates: {
       agent1: {
-        config: { model: 'gpt-4' },
+        config: { model: 'gpt-4o-mini' },
         context: { lastQuery: 'Hello' },
         messageHistory: []
       },
@@ -209,7 +209,7 @@ describe('SessionSerializer - JSON Serialization', () => {
       expect(parsed.agentStates).toBeDefined();
       expect(typeof parsed.agentStates).toBe('object');
       expect(parsed.agentStates.agent1).toBeDefined();
-      expect(parsed.agentStates.agent1.config.model).toBe('gpt-4');
+      expect(parsed.agentStates.agent1.config.model).toBe('gpt-4o-mini');
       expect(parsed.agentStates.agent2).toBeDefined();
     });
 
@@ -298,7 +298,7 @@ describe('SessionSerializer - JSON Serialization', () => {
       const restored = SessionSerializer.fromJSON(json);
 
       expect(restored.agentStates).toBeDefined();
-      expect(restored.agentStates['agent1'].config['model']).toBe('gpt-4');
+      expect(restored.agentStates['agent1'].config['model']).toBe('gpt-4o-mini');
       expect(restored.agentStates['agent2'].context['status']).toBe('idle');
     });
 
