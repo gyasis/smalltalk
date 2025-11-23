@@ -2,6 +2,16 @@
   "active_locks": [],
   "lock_history": [
     {
+      "file_path": "/home/gyasis/Documents/code/smalltalk/src/events/EventBus.ts",
+      "agent_id": "main-agent",
+      "agent_type": "main",
+      "locked_at": "2025-11-23T17:00:00Z",
+      "released_at": "2025-11-23T18:30:00Z",
+      "task_completed": true,
+      "verification_status": "passing",
+      "notes": "771 lines, 19/19 integration tests passing (100%), publish-subscribe with wildcards, at-least-once delivery, JSONL persistence, event replay with policies, latency monitoring, cleanup tasks"
+    },
+    {
       "file_path": "/home/gyasis/Documents/code/smalltalk/src/health/AgentHealthMonitor.ts",
       "agent_id": "main-agent",
       "agent_type": "main",
